@@ -14,6 +14,7 @@ Responsibilities:
     Deployment: Managed the smooth transition of the application from development to production environments.
 
 Collaboration:
+
     Worked closely with departmental colleagues to refine the GUI based on user feedback and requirements.
 
 Technologies:

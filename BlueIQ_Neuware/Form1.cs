@@ -94,6 +94,14 @@ namespace BlueIQ_Neuware
                 passwordTextBox.Text = "";
                 excelFilePathTextBox.Text = "";
                 locationTextBox.Text = "";
+                if (package != null && package.Workbook.Worksheets.Count > 0)
+                {
+                    // Save the Excel file (if it has changes)
+                    package.Save();
+
+                    // Close the Excel package and release resources
+                    package.Dispose();
+                }
             }
         }
 
@@ -179,7 +187,7 @@ namespace BlueIQ_Neuware
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine(e.ToString());
+                LogError(nameof(LoginToSite),(e.ToString()));
                 return false;
             }
         }
@@ -196,10 +204,10 @@ namespace BlueIQ_Neuware
                 checkElement.Click();
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // Maybe log the error or update a label on your form
-                // statusLabel.Text = e.Message;
+                LogError(nameof(AddPallet), (ex.ToString()));
                 return false;
             }
         }
@@ -276,8 +284,9 @@ namespace BlueIQ_Neuware
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    LogError(nameof(ProcessExcelFile), (ex.ToString()));
                     continue;
                 }
                 finally
@@ -373,16 +382,46 @@ namespace BlueIQ_Neuware
                 if (!WaitForElementToDisappear(BlueDictionary.AUDIT_PAGE["LOADING"]))
                     return false;
 
-                var driverWindowHandles = driver.WindowHandles;
-                driver.SwitchTo().Window(driverWindowHandles[1]);
-                driver.Close();
-                driver.SwitchTo().Window(driverWindowHandles[0]);
+                if (!TryCloseSecondTab())
+                {
+                    LogError(nameof(AddDevice), "Failed to close the second tab after multiple attempts.");
+                    return false;
+                }
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                LogError(nameof(AddDevice), (ex.ToString()));
                 return false;
             }
+        }
+
+        private bool TryCloseSecondTab(int retries = 3)
+        {
+            for (int i = 0; i < retries; i++)
+            {
+                var driverWindowHandles = driver.WindowHandles;
+                if (driverWindowHandles.Count > 1)
+                {
+                    try
+                    {
+                        driver.SwitchTo().Window(driverWindowHandles[1]);
+                        driver.Close();
+                        driver.SwitchTo().Window(driverWindowHandles[0]);
+                        return true; // Successfully closed the second tab.
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError(nameof(TryCloseSecondTab), (ex.ToString()));
+                    }
+                }
+
+                // If second tab was not found or there was an issue, wait for a short duration before retrying.
+                System.Threading.Thread.Sleep(500);
+            }
+
+            // If we reach here, it means we've exhausted our retries and the second tab couldn't be closed.
+            return false;
         }
 
         private void UpdateUI(Action action)
@@ -474,5 +513,16 @@ namespace BlueIQ_Neuware
                 }
             }
         }
+
+        private void LogError(string functionName, string errorMessage)
+        {
+            string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "errorLog.txt");
+            using (StreamWriter writer = new StreamWriter(logFilePath, true)) // true means appending to the file
+            {
+                string logEntry = $"\"{DateTime.Now:O}\", \"{functionName}\", \"Error: {errorMessage}\"";
+                writer.WriteLine(logEntry);
+            }
+        }
+
     }
 }
