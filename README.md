@@ -1,6 +1,7 @@
 # BlueIQ_Neuware Automation System
 
 A Windows Forms application developed in C# designed to automate the processes regarding the operations assosiated with the Ingram database.
+Achieves a 80% reduction in time when compared with doing the processes manually
 
 supported processes:
 
