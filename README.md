@@ -1,6 +1,13 @@
 # BlueIQ_Neuware Automation System
 
-A Windows Forms application developed in C# designed to automate the process of booking new deliveries to a database by accessing a website. By leveraging the power of Selenium for web automation, the booking time for devices was reduced by a notable 85%.
+A Windows Forms application developed in C# designed to automate the processes regarding the operations assosiated with the Ingram database.
+
+supported processes:
+
+    Book New Stock
+    Book B2B Devices
+    Create Manual Outbound Orders
+    
 Features:
 
     Efficient Automation: Uses Selenium to navigate and automate tasks on the targeted website.
