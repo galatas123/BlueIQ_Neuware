@@ -48,6 +48,9 @@
             toolStripDropDownButton1 = new ToolStripDropDownButton();
             aboutToolStripMenuItem = new ToolStripMenuItem();
             createExcelTemplateToolStripMenuItem = new ToolStripMenuItem();
+            languageToolStripMenuItem = new ToolStripMenuItem();
+            englishToolStripMenuItem = new ToolStripMenuItem();
+            germanToolStripMenuItem = new ToolStripMenuItem();
             percentLabel = new Label();
             jobOrPoLabel = new Label();
             jobOrPoTextBox = new TextBox();
@@ -66,7 +69,7 @@
             // 
             usernameTextBox.BackColor = Color.White;
             usernameTextBox.BorderStyle = BorderStyle.None;
-            usernameTextBox.Location = new Point(387, 168);
+            usernameTextBox.Location = new Point(400, 168);
             usernameTextBox.Name = "usernameTextBox";
             usernameTextBox.Size = new Size(100, 16);
             usernameTextBox.TabIndex = 0;
@@ -75,7 +78,7 @@
             // 
             passwordTextBox.BackColor = Color.White;
             passwordTextBox.BorderStyle = BorderStyle.None;
-            passwordTextBox.Location = new Point(387, 235);
+            passwordTextBox.Location = new Point(400, 235);
             passwordTextBox.Name = "passwordTextBox";
             passwordTextBox.PasswordChar = '*';
             passwordTextBox.Size = new Size(100, 16);
@@ -89,7 +92,7 @@
             username_label.Name = "username_label";
             username_label.Size = new Size(60, 15);
             username_label.TabIndex = 2;
-            username_label.Text = "Username";
+            username_label.Text = Languages.Resources.USER;
             // 
             // password_label
             // 
@@ -98,7 +101,7 @@
             password_label.Name = "password_label";
             password_label.Size = new Size(57, 15);
             password_label.TabIndex = 3;
-            password_label.Text = "Password";
+            password_label.Text = Languages.Resources.PASS;
             password_label.TextAlign = ContentAlignment.TopRight;
             // 
             // excelPathTextBox
@@ -109,7 +112,7 @@
             excelPathTextBox.Size = new Size(100, 23);
             excelPathTextBox.TabIndex = 4;
             excelPathTextBox.Visible = false;
-            excelPathTextBox.Enter += excelFilePathTextBox_Enter;
+            excelPathTextBox.Enter += ExcelFilePathTextBox_Enter;
             // 
             // progressBar
             // 
@@ -134,7 +137,7 @@
             statusLabel.AutoSize = false;
             statusLabel.Name = "statusLabel";
             statusLabel.Size = new Size(150, 17);
-            statusLabel.Text = "status";
+            statusLabel.Text = Languages.Resources.STATUS;
             // 
             // toolStripStatusLabel1
             // 
@@ -150,9 +153,9 @@
             startButton.ForeColor = Color.Black;
             startButton.Location = new Point(283, 314);
             startButton.Name = "startButton";
-            startButton.Size = new Size(126, 23);
+            startButton.Size = new Size(126, 34);
             startButton.TabIndex = 7;
-            startButton.Text = "start";
+            startButton.Text = Languages.Resources.START;
             startButton.UseVisualStyleBackColor = false;
             startButton.Click += StartButton_Click;
             // 
@@ -162,7 +165,7 @@
             browseButton.Name = "browseButton";
             browseButton.Size = new Size(75, 23);
             browseButton.TabIndex = 8;
-            browseButton.Text = "browse...";
+            browseButton.Text = Languages.Resources.BROWSE;
             browseButton.UseVisualStyleBackColor = true;
             browseButton.Visible = false;
             browseButton.Click += BrowseButton_Click;
@@ -174,7 +177,7 @@
             locationLabel.Name = "locationLabel";
             locationLabel.Size = new Size(53, 15);
             locationLabel.TabIndex = 9;
-            locationLabel.Text = "Location";
+            locationLabel.Text = Languages.Resources.LOCATION;
             locationLabel.Visible = false;
             // 
             // locationTextBox
@@ -201,26 +204,47 @@
             // toolStripDropDownButton1
             // 
             toolStripDropDownButton1.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            toolStripDropDownButton1.DropDownItems.AddRange(new ToolStripItem[] { aboutToolStripMenuItem, createExcelTemplateToolStripMenuItem });
+            toolStripDropDownButton1.DropDownItems.AddRange(new ToolStripItem[] { aboutToolStripMenuItem, createExcelTemplateToolStripMenuItem, languageToolStripMenuItem });
             toolStripDropDownButton1.Image = (Image)resources.GetObject("toolStripDropDownButton1.Image");
             toolStripDropDownButton1.ImageTransparentColor = Color.Magenta;
             toolStripDropDownButton1.Name = "toolStripDropDownButton1";
             toolStripDropDownButton1.Size = new Size(51, 22);
-            toolStripDropDownButton1.Text = "Menu";
+            toolStripDropDownButton1.Text = Languages.Resources.MENU;
             // 
             // aboutToolStripMenuItem
             // 
             aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            aboutToolStripMenuItem.Size = new Size(187, 22);
-            aboutToolStripMenuItem.Text = "About";
-            aboutToolStripMenuItem.Click += aboutToolStripMenuItem_Click;
+            aboutToolStripMenuItem.Size = new Size(188, 22);
+            aboutToolStripMenuItem.Text = Languages.Resources.ABOUT;
+            aboutToolStripMenuItem.Click += AboutToolStripMenuItem_Click;
             // 
             // createExcelTemplateToolStripMenuItem
             // 
             createExcelTemplateToolStripMenuItem.Name = "createExcelTemplateToolStripMenuItem";
-            createExcelTemplateToolStripMenuItem.Size = new Size(187, 22);
-            createExcelTemplateToolStripMenuItem.Text = "create Excel Template";
-            createExcelTemplateToolStripMenuItem.Click += createExcelTemplateToolStripMenuItem_Click;
+            createExcelTemplateToolStripMenuItem.Size = new Size(188, 22);
+            createExcelTemplateToolStripMenuItem.Text = Languages.Resources.CREATE_EXCEL_TEMPLATE;
+            createExcelTemplateToolStripMenuItem.Click += CreateExcelTemplateToolStripMenuItem_Click;
+            // 
+            // languageToolStripMenuItem
+            // 
+            languageToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { englishToolStripMenuItem, germanToolStripMenuItem });
+            languageToolStripMenuItem.Name = "languageToolStripMenuItem";
+            languageToolStripMenuItem.Size = new Size(188, 22);
+            languageToolStripMenuItem.Text = Languages.Resources.LANGUAGE;
+            // 
+            // englishToolStripMenuItem
+            // 
+            englishToolStripMenuItem.Name = "englishToolStripMenuItem";
+            englishToolStripMenuItem.Size = new Size(116, 22);
+            englishToolStripMenuItem.Text = Languages.Resources.EN;
+            englishToolStripMenuItem.Click += EnglishToolStripMenuItem_Click;
+            // 
+            // germanToolStripMenuItem
+            // 
+            germanToolStripMenuItem.Name = "germanToolStripMenuItem";
+            germanToolStripMenuItem.Size = new Size(116, 22);
+            germanToolStripMenuItem.Text = Languages.Resources.DE;
+            germanToolStripMenuItem.Click += GermanToolStripMenuItem_Click;
             // 
             // percentLabel
             // 
@@ -258,16 +282,15 @@
             comboBoxMode.Name = "comboBoxMode";
             comboBoxMode.Size = new Size(121, 23);
             comboBoxMode.TabIndex = 16;
-            comboBoxMode.SelectedIndexChanged += comboBoxMode_SelectedIndexChanged;
+            comboBoxMode.SelectedIndexChanged += ComboBoxMode_SelectedIndexChanged;
             // 
             // taskLabel
             // 
-            taskLabel.AutoSize = true;
-            taskLabel.Location = new Point(296, 106);
+            taskLabel.Location = new Point(306, 106);
             taskLabel.Name = "taskLabel";
-            taskLabel.Size = new Size(71, 15);
+            taskLabel.Size = new Size(75, 15);
             taskLabel.TabIndex = 17;
-            taskLabel.Text = "Choose task";
+            taskLabel.Text = Languages.Resources.TASK;
             // 
             // CreditcomboBox
             // 
@@ -287,7 +310,7 @@
             creditLabel.Name = "creditLabel";
             creditLabel.Size = new Size(66, 15);
             creditLabel.TabIndex = 19;
-            creditLabel.Text = "Credit Type";
+            creditLabel.Text = Languages.Resources.CREDIT_TYPE;
             creditLabel.Visible = false;
             // 
             // stopButton
@@ -297,11 +320,11 @@
             stopButton.ForeColor = Color.Black;
             stopButton.Location = new Point(474, 314);
             stopButton.Name = "stopButton";
-            stopButton.Size = new Size(126, 23);
+            stopButton.Size = new Size(126, 34);
             stopButton.TabIndex = 20;
-            stopButton.Text = "stop";
+            stopButton.Text = Languages.Resources.STOP;
             stopButton.UseVisualStyleBackColor = false;
-            stopButton.Click += stopButton_Click;
+            stopButton.Click += StopButton_Click;
             // 
             // Form1
             // 
@@ -331,7 +354,7 @@
             Controls.Add(usernameTextBox);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
-            Text = "Blue IQ Neuware";
+            Text = "Blue IQ Automation";
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();
             toolStrip1.ResumeLayout(false);
@@ -370,5 +393,8 @@
         private ComboBox CreditcomboBox;
         private Label creditLabel;
         private Button stopButton;
+        private ToolStripMenuItem languageToolStripMenuItem;
+        private ToolStripMenuItem englishToolStripMenuItem;
+        private ToolStripMenuItem germanToolStripMenuItem;
     }
 }

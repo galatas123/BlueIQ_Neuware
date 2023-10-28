@@ -1,15 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>ingram_logo.ico</ApplicationIcon>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net6.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ApplicationIcon>ingram_logo.ico</ApplicationIcon>
+		<AssemblyName>BlueIQ</AssemblyName>
+		<RootNamespace>$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
 
-  <ItemGroup>
+		<!-- Additional metadata properties -->
+		<Version>1.0.0</Version>
+		<FileVersion>1.0.0</FileVersion>
+		<Company>Ingram Micro Services Flensburg</Company>
+		<Product>BlueIQ Automation</Product>
+		<Description>Automate BlueIQ tasks</Description>
+		<Copyright>© 2023 Ingram Micro Services</Copyright>
+		<AssemblyTitle>Automate BlueIQ tasks</AssemblyTitle>
+		<Authors>Anil Chikmet Oglou</Authors>
+		<IsPublishable>False</IsPublishable>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <AdditionalFiles Remove="Properties\app.manifest" />
+	</ItemGroup>
+
+
+	<ItemGroup>
     <Content Include="ingram_logo.ico" />
   </ItemGroup>
 
@@ -26,6 +44,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Languages\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -34,6 +57,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Languages\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Update="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

@@ -43,7 +43,7 @@
             // tableLayoutPanel
             // 
             tableLayoutPanel.ColumnCount = 2;
-            tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48.1144333F));
+            tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48.11443F));
             tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 51.8855667F));
             tableLayoutPanel.Controls.Add(labelProductName, 1, 0);
             tableLayoutPanel.Controls.Add(labelVersion, 1, 1);
@@ -57,12 +57,12 @@
             tableLayoutPanel.Margin = new Padding(4, 3, 4, 3);
             tableLayoutPanel.Name = "tableLayoutPanel";
             tableLayoutPanel.RowCount = 7;
-            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 10.03924F));
-            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 10.0392418F));
-            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 10.0392418F));
-            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 32.2981377F));
-            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 27.95031F));
-            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 10.03924F));
+            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 11.09772F));
+            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 11.0977249F));
+            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 11.0977211F));
+            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 17.4464035F));
+            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 44.12914F));
+            tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 5.131295F));
             tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
             tableLayoutPanel.Size = new Size(523, 314);
             tableLayoutPanel.TabIndex = 0;
@@ -76,13 +76,13 @@
             labelProductName.Name = "labelProductName";
             labelProductName.Size = new Size(261, 20);
             labelProductName.TabIndex = 19;
-            labelProductName.Text = "BlueIQ Neuware Buchung";
+            labelProductName.Text = "BlueIQ Control";
             labelProductName.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // labelVersion
             // 
             labelVersion.Dock = DockStyle.Fill;
-            labelVersion.Location = new Point(258, 27);
+            labelVersion.Location = new Point(258, 30);
             labelVersion.Margin = new Padding(7, 0, 4, 0);
             labelVersion.MaximumSize = new Size(0, 20);
             labelVersion.Name = "labelVersion";
@@ -94,7 +94,7 @@
             // labelCopyright
             // 
             labelCopyright.Dock = DockStyle.Fill;
-            labelCopyright.Location = new Point(258, 54);
+            labelCopyright.Location = new Point(258, 60);
             labelCopyright.Margin = new Padding(7, 0, 4, 0);
             labelCopyright.MaximumSize = new Size(0, 20);
             labelCopyright.Name = "labelCopyright";
@@ -106,7 +106,7 @@
             // labelCompanyName
             // 
             labelCompanyName.Dock = DockStyle.Fill;
-            labelCompanyName.Location = new Point(258, 81);
+            labelCompanyName.Location = new Point(258, 90);
             labelCompanyName.Margin = new Padding(7, 0, 4, 0);
             labelCompanyName.MaximumSize = new Size(0, 20);
             labelCompanyName.Name = "labelCompanyName";
@@ -142,16 +142,16 @@
             // textBoxDescription
             // 
             textBoxDescription.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            textBoxDescription.Location = new Point(258, 173);
+            textBoxDescription.Location = new Point(258, 157);
             textBoxDescription.Margin = new Padding(7, 3, 4, 3);
             textBoxDescription.Multiline = true;
             textBoxDescription.Name = "textBoxDescription";
             textBoxDescription.ReadOnly = true;
             textBoxDescription.ScrollBars = ScrollBars.Both;
-            textBoxDescription.Size = new Size(261, 71);
+            textBoxDescription.Size = new Size(261, 100);
             textBoxDescription.TabIndex = 23;
             textBoxDescription.TabStop = false;
-            textBoxDescription.Text = "A programm for booking new devices to blue IQ.\r\nFor questions or requests please contact\r\nAnil.ChikmetOglou@ingrammicro.com";
+            textBoxDescription.Text = Languages.Resources.INFO;
             // 
             // About
             // 
@@ -169,7 +169,7 @@
             ShowIcon = false;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterParent;
-            Text = "About";
+            Text = Languages.Resources.ABOUT;
             tableLayoutPanel.ResumeLayout(false);
             tableLayoutPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)logoPictureBox).EndInit();

@@ -1,6 +1,4 @@
-﻿using System.Collections.ObjectModel;
-
-namespace BlueIQ_Neuware
+﻿namespace BlueIQ_Neuware
 {
     internal class BlueDictionary
     {
@@ -8,6 +6,7 @@ namespace BlueIQ_Neuware
         public const int WEIGHT = 1;
         public const string ASSET = "NA";
         public const string loading = "//*[@id=\"ctl00_ctl00_imgWorking\"]";
+
         public static readonly Dictionary<string, string> LINKS = new()
         {
             { "LOGIN", "https://blueiq.cloudblue.com/" },
@@ -106,7 +105,6 @@ namespace BlueIQ_Neuware
             { "CONFIRM_DEL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnDeletsSelectedItems\"]" }
         };
 
-
         public static readonly Dictionary<string, string> REPAIR_DETAIL_PAGE = new()
         {
             { "SERIAL_NO", "//*[@id=\"lblSerialNumber\"]" },
@@ -130,7 +128,7 @@ namespace BlueIQ_Neuware
             { "LOAD_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lblCurrentLoadID\"]" },
             { "SEARCH_JOB", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtJobID\"]" },
             { "SEARCH_BTN", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkShowJobs\"]" },
-            { "PALLET_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvLoadPallet_ctl02_lblPallet\"]" }, 
+            { "PALLET_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvLoadPallet_ctl02_lblPallet\"]" },
             { "OTHER", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/div/div[1]/div[2]/select/option[6]" },
             { "LOADING", "//*[@id=\"ctl00_ctl00_UpdateProgress1\"]" },
             { "BOL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtBOL\"]" },
@@ -143,7 +141,7 @@ namespace BlueIQ_Neuware
             { "DUNNAGE_PALLET", "/html/body/form/div[4]/div/div[2]/div[1]/div[2]/div[2]/select/option[2]" },
             { "AUDIO", "/html/body/form/div[4]/div/div[3]/div[1]/div[2]/table/tbody/tr[2]/td[2]/select/option[4]" },
             { "MISCELLANEOUS", "/html/body/form/div[4]/div/div[3]/div[1]/div[2]/table/tbody/tr[2]/td[5]/select/option[13]" },
-            { "QTY_DEVICES", "//*[@id=\"txtQuantity\"]" }, 
+            { "QTY_DEVICES", "//*[@id=\"txtQuantity\"]" },
             { "SORT", "/html/body/form/div[4]/div/div[2]/div[2]/div[2]/div[2]/select/option[3]" },
             { "LOCATION", "//*[@id=\"txtMoveToLocation\"]" },
             { "SAVE", "/html/body/form/div[4]/div/div[1]/div[2]/div[2]/div[3]/div/a/img" },

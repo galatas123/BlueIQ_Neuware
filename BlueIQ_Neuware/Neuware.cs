@@ -1,13 +1,6 @@
 ﻿using OfficeOpenXml;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
-using System;
-using System.IO.Packaging;
-using System.Threading;
-
-
-
 
 namespace BlueIQ_Neuware
 {
@@ -18,13 +11,14 @@ namespace BlueIQ_Neuware
         public delegate void StatusUpdateHandler(string statusMessage);
         public delegate void SetMaxProgressHandler(int maxValue);
         public delegate void MessageHandler(string message);
-        // Define the event using the delegate
-        public static event ProgressUpdateHandler ProgressUpdated;
-        public static event StatusUpdateHandler StatusUpdated;
-        public static event SetMaxProgressHandler SetMaxProgress;
-        public static event MessageHandler ShowMessage;
 
-        public static void start_neuware(string location, string pono, CancellationToken cancellationToken)
+        // Define the event using the delegate
+        public static event ProgressUpdateHandler? ProgressUpdated;
+        public static event StatusUpdateHandler? StatusUpdated;
+        public static event SetMaxProgressHandler? SetMaxProgress;
+        public static event MessageHandler? ShowMessage;
+
+        public static void Start_neuware(string location, string pono, CancellationToken cancellationToken)
         {
             // Inside the method, you can periodically check if cancellation has been requested
             if (cancellationToken.IsCancellationRequested)
@@ -32,28 +26,30 @@ namespace BlueIQ_Neuware
                 return;
             }
             // Ensure the driver and wait objects from global_functions are initialized
-            if (global_functions.driver == null || global_functions.wait == null)
+            if (Global_functions.driver == null || Global_functions.wait == null)
             {
                 throw new InvalidOperationException("WebDriver or WebDriverWait not initialized.");
             }
 
-            startBooking(location, pono);
+            StartBooking(location, pono);
         }
 
-        private static void startBooking(string location, string pono)
+        private static void StartBooking(string location, string pono)
         {
             int counter = 0;
             int progressBarValue = 0;
             int progressBarMaximum = 0;
             bool newPallet = true;
             Dictionary<string, object> data = new();
-            
-            var ws = global_functions.package.Workbook.Worksheets[0]; // Access package from the class level
+
+            var ws = Global_functions.package.Workbook.Worksheets[0]; // Access package from the class level
             int maxColumn = ws.Dimension.End.Column;
 
             // Find the last row with data
             int rowCount = ws.Cells[ws.Dimension.Address].Rows;
-            string pallet_id = global_functions.createJob(pono, rowCount - 1, location, true);
+            string pallet_id = Global_functions.CreateJob(pono, rowCount - 1, location, true);
+            if (pallet_id == "")
+                throw new Exception("Failed to create job");
             SetMaxProgress?.Invoke(rowCount - 1); // Deducting 2 as you're starting from the second row and excluding the header row.
             progressBarMaximum = rowCount - 1;
             ProgressUpdated?.Invoke(0); // Reset the progress bar at the start.
@@ -67,7 +63,7 @@ namespace BlueIQ_Neuware
                     continue;
                 }
 
-                StatusUpdated?.Invoke("Booking next device");
+                StatusUpdated?.Invoke(Languages.Resources.BOOK_NEXT);
                 data["part_number"] = ws.Cells[row, 2].Text;
                 data["serial"] = ws.Cells[row, 1].Text;
 
@@ -75,7 +71,7 @@ namespace BlueIQ_Neuware
                 {
                     // For debugging purposes
                     ShowMessage?.Invoke($"Part Number: {data["part_number"]}, Serial: {data["serial"]}, Pallet: {pallet_id}, PONO: {pono}");
-                    DialogResult result = MessageBox.Show("Want to continue?", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
+                    DialogResult? result = MessageBox.Show("Want to continue?", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
                     if (result == DialogResult.No)
                     {
                         return; // Exit the function if the user chooses "No"
@@ -84,15 +80,16 @@ namespace BlueIQ_Neuware
 
                 try
                 {
+                    
                     if (newPallet)
                     {
-                        if (!global_functions.AddPallet(pallet_id))
+                        if (!Global_functions.AddPallet(pallet_id))
                         {
                             ws.Cells[row, maxColumn + 1].Value = "Pallet Error";
                             continue;
                         }
                     }
-                    if (data["serial"].ToString().Length == 8)
+                    if ((data["serial"].ToString().Length == 8) && (data["part_number"].ToString().Length == 7))
                     {
                         if (!AddDevice(data, newPallet, location, pono, ws, row, maxColumn))
                         {
@@ -101,14 +98,17 @@ namespace BlueIQ_Neuware
                     }
                     else
                     {
-                        ws.Cells[row, maxColumn + 1].Value = "Serial not 8 digits long";
+                        if (data["serial"].ToString().Length == 8)
+                            ws.Cells[row, maxColumn + 1].Value = "Serial not 8 digits long";
+                        else if (data["separt_numberrial"].ToString().Length == 7)
+                            ws.Cells[row, maxColumn + 1].Value = "part number not 7 digits long";
                         continue;
                     }
                     newPallet = false;
                 }
                 catch (Exception ex)
                 {
-                    global_functions.LogError(nameof(startBooking), (ex.ToString()));
+                    Global_functions.LogError(nameof(StartBooking), (ex.ToString()));
                     continue;
                 }
                 finally
@@ -124,65 +124,73 @@ namespace BlueIQ_Neuware
                         int percentage = (int)(((double)progressBarValue / (double)progressBarMaximum) * 100);
                         ProgressUpdated?.Invoke(progressBarValue, $"{percentage}%");
                     }
-                    global_functions.package.Save();
+                    Global_functions.package.Save();
                 }
             }
-            global_functions.package.Save();
+            Global_functions.package.Save();
         }
 
         private static bool AddDevice(Dictionary<string, object> data, bool newPallet, string location, string pono, ExcelWorksheet ws, int row, int maxColumn)
         {
             try
             {
-                global_functions.WaitForLoadingToDisappear();
-                System.Threading.Thread.Sleep(500);
+                bool isElementClickable = false;
+                int maxRetries = 3;
+                int currentRetry = 0;
+
+                Global_functions.WaitForLoadingToDisappear();
+                while (!isElementClickable && currentRetry < maxRetries)
+                {
+                    try
+                    {
+                        Global_functions.wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.AUDIT_PAGE["SAVE"])));
+                        isElementClickable = true; // Exit the loop once the element is clickable
+                    }
+                    catch (WebDriverTimeoutException)
+                    {
+                        currentRetry++; // Increase the retry counter
+                        Global_functions.driver.Navigate().Refresh();
+                    }
+                }
+
+                if (!isElementClickable)
+                {
+                    throw new Exception("save button did not appear on audit page");
+                }
+
+                Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"].ToString());
+                Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
 
                 try
                 {
-                    global_functions.wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.AUDIT_PAGE["SAVE"])));
-                }
-                catch (WebDriverTimeoutException)
-                {
-                    global_functions.driver.Navigate().Refresh();
-                }
-
-                global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"].ToString());
-                global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
-                System.Threading.Thread.Sleep(500);
-
-                try
-                {
-                    global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"].ToString());
+                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString());
                 }
                 catch (Exception)
                 {
-                    global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"].ToString());
-                    global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
-                    System.Threading.Thread.Sleep(500);
-                    global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"].ToString());
+                    Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"].ToString());
+                    Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
+                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"].ToString());
                 }
 
-                global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["ASSET"]), BlueDictionary.ASSET.ToString());
-                global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["WEIGHT"]), BlueDictionary.WEIGHT.ToString());
+                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["ASSET"]), BlueDictionary.ASSET.ToString());
+                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["WEIGHT"]), BlueDictionary.WEIGHT.ToString());
 
                 if (newPallet)
                 {
-                    global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCATION"]), location);
-                    global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCK_LOCATION"]));
+                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCATION"]), location);
+                    Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCK_LOCATION"]));
                 }
 
-                global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["WARRANTY"]));
-                global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["NEW_IN_BOX"]));
-                global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["NEW_STOCK"]));
-                global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["PONO"]), pono);
-                System.Threading.Thread.Sleep(500);
+                Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["WARRANTY"]));
+                Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["NEW_IN_BOX"]));
+                Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["NEW_STOCK"]));
+                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["PONO"]), pono);
 
-                global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["SAVE"]), false);
+                Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["SAVE"]), false);
 
                 try
                 {
-
-                    string alertMessage = global_functions.handleAlert();
+                    string alertMessage = Global_functions.HandleAlert();
                     // Update the Excel file with the alert message.
                     ws.Cells[row, maxColumn + 1].Value = alertMessage;
 
@@ -190,16 +198,14 @@ namespace BlueIQ_Neuware
                 }
                 catch (WebDriverTimeoutException)
                 {
-                    // If the alert did not appear within the custom timeout, we assume that the operation is proceeding normally.
-                    // Now, wait for the loading spinner to disappear using global_functions.
-                    global_functions.WaitForLoadingToDisappear();
+                    Global_functions.WaitForLoadingToDisappear();
                 }
 
-                global_functions.WaitForLoadingToDisappear();
+                Global_functions.WaitForLoadingToDisappear();
 
-                if (!global_functions.TryCloseSecondTab())
+                if (!Global_functions.TryCloseSecondTab())
                 {
-                    global_functions.LogError(nameof(AddDevice), "Failed to close the second tab after multiple attempts.");
+                    Global_functions.LogError(nameof(AddDevice), "Failed to close the second tab after multiple attempts.");
                     ws.Cells[row, maxColumn + 1].Value = "Failed to close second tab";
                     return false;
                 }
@@ -208,7 +214,7 @@ namespace BlueIQ_Neuware
             }
             catch (Exception ex)
             {
-                global_functions.LogError(nameof(AddDevice), (ex.ToString()));
+                Global_functions.LogError(nameof(AddDevice), (ex.ToString()));
                 ws.Cells[row, maxColumn + 1].Value = ex.ToString();
                 return false;
             }

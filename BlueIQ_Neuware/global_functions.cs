@@ -1,47 +1,42 @@
-﻿using OpenQA.Selenium.Firefox;
-using OpenQA.Selenium.Support.UI;
+﻿using OfficeOpenXml;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Firefox;
+using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 
 namespace BlueIQ_Neuware
 {
-    internal class global_functions
+    internal class Global_functions
     {
         public static IWebDriver? driver;
         public static WebDriverWait? wait;
         public static WebDriverWait? waitAlert;
-        public static OfficeOpenXml.ExcelPackage package;
+        public static OfficeOpenXml.ExcelPackage? package;
+
         // Define a delegate for the event
         public delegate void StatusUpdateHandler(string statusMessage);
-        // Define the event using the delegate
-        public static event StatusUpdateHandler StatusUpdated;
 
-        public static bool LoginToSite(string username, string password, string excelFilePath)
+        // Define the event using the delegate
+        public static event StatusUpdateHandler? StatusUpdated;
+
+        public static bool LoginToSite(string excelFilePath, string username, string password)
         {
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             SetupWebDriver();
             if (!LoadPage(BlueDictionary.LINKS["LOGIN"]))
                 return false;
 
             try
             {
-                package = new OfficeOpenXml.ExcelPackage(new FileInfo(excelFilePath));
-                IWebElement usernameElem = wait.Until(driver => driver.FindElement(By.XPath(BlueDictionary.LOGIN_PAGE["USERNAME"])));
-                IWebElement passwordElem = wait.Until(driver => driver.FindElement(By.XPath(BlueDictionary.LOGIN_PAGE["PASSWORD"])));
-                usernameElem.SendKeys(username);
-                passwordElem.SendKeys(password);
-
-                IWebElement loginButton = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.LOGIN_PAGE["BUTTON"])));
-                loginButton.Click();
+                
+                package = new ExcelPackage(new FileInfo(excelFilePath));
+                SendKeysToVisibleElement(By.XPath(BlueDictionary.LOGIN_PAGE["USERNAME"]), username);
+                SendKeysToVisibleElement(By.XPath(BlueDictionary.LOGIN_PAGE["PASSWORD"]), password);
+                ClickElement(By.XPath(BlueDictionary.LOGIN_PAGE["BUTTON"]));
 
                 if (!WaitForElementToDisappear(BlueDictionary.LOGIN_PAGE["LOADING"]))
                     return false;
-                StatusUpdated?.Invoke("Loading done");
                 try
                 {
                     // Create a separate WebDriverWait instance with a shorter timeout
@@ -49,7 +44,6 @@ namespace BlueIQ_Neuware
 
                     IWebElement errorMessageElem = customWait.Until(ExpectedConditions.PresenceOfAllElementsLocatedBy(By.XPath(BlueDictionary.LOGIN_PAGE["LOGIN_ERROR"])))[0];
                     string errorMessage = errorMessageElem.Text.Trim();
-                    StatusUpdated?.Invoke("Error read");
 
                     if (!string.IsNullOrEmpty(errorMessage))
                     {
@@ -64,7 +58,6 @@ namespace BlueIQ_Neuware
                 {
                     return true;
                 }
-
             }
             catch (Exception e)
             {
@@ -126,7 +119,7 @@ namespace BlueIQ_Neuware
                         StatusUpdated?.Invoke("Retrying..      .");
                 }
             }
-            StatusUpdated?.Invoke("Page took too long to load");
+            StatusUpdated?.Invoke(Languages.Resources.LONG_LOAD);
             return false;
         }
 
@@ -136,7 +129,7 @@ namespace BlueIQ_Neuware
                 throw new Exception("Loading did not disappear after saving loading details.");
         }
 
-        public static string handleAlert()
+        public static string HandleAlert()
         {
             IAlert alert = waitAlert.Until(ExpectedConditions.AlertIsPresent());
 
@@ -148,42 +141,54 @@ namespace BlueIQ_Neuware
             return alertMessage;
         }
 
-        public static void SendKeysToVisibleElement(By by, string text)
+        public static void SendKeysToVisibleElement(By by, string? text)
         {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                throw new Exception(GetCallerFunctionName() + "Text provided is null or whitespace.");
+            }
+
             try
             {
+                System.Threading.Thread.Sleep(250);
                 var element = wait.Until(ExpectedConditions.ElementIsVisible(by));
                 element.SendKeys(text);
                 WaitForLoadingToDisappear();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                LogError(GetCallerFunctionName(), e.Message);
-                throw; // Re-throwing the exception to be handled or logged further up the call stack if needed
+                throw;
             }
         }
 
-        public static void SendKeysToElement(By by, string text, bool clearFirst = false)
+        public static void SendKeysToElement(By by, string? text, bool clearFirst = false)
         {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                throw new Exception(GetCallerFunctionName() + "Text provided is null or whitespace.");
+            }
+
             try
             {
+                System.Threading.Thread.Sleep(250);
                 var element = wait.Until(ExpectedConditions.ElementToBeClickable(by));
                 if (clearFirst)
                     element.Clear();
                 element.SendKeys(text);
                 WaitForLoadingToDisappear();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                LogError(GetCallerFunctionName(), e.Message);
                 throw;
             }
         }
+
 
         public static void ClickElement(By by, bool waitForLoadAfterClick = true)
         {
             try
             {
+                System.Threading.Thread.Sleep(250);
                 var element = wait.Until(ExpectedConditions.ElementToBeClickable(by));
                 element.Click();
                 if (waitForLoadAfterClick)
@@ -191,14 +196,13 @@ namespace BlueIQ_Neuware
                     WaitForLoadingToDisappear();
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                LogError(GetCallerFunctionName(), e.Message);
                 throw;
             }
         }
 
-        public static string createJob(string referenceNumber, int totaldevices, string location, bool load=false)
+        public static string CreateJob(string referenceNumber, int totaldevices, string location, bool load = false)
         {
             try
             {
@@ -231,7 +235,7 @@ namespace BlueIQ_Neuware
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["ARRIVAL_TIME"]), formattedTime);
 
                 ClickElement(By.XPath(BlueDictionary.RECEIVING_PAGE["SAVE&EXIT"]));
-                handleAlert();
+                HandleAlert();
 
                 var pallet = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.RECEIVING_PAGE["PALLET_ID"])));
                 string pallet_id = pallet.Text;
@@ -259,7 +263,7 @@ namespace BlueIQ_Neuware
             {
                 // Here you can log the exception or take other appropriate actions.
                 LogError(nameof(AddPallet), (ex.ToString()));
-                return null; // Return a default value or handle as appropriate.
+                return ""; // Return a default value or handle as appropriate.
             }
         }
 
@@ -311,18 +315,93 @@ namespace BlueIQ_Neuware
         public static void LogError(string functionName, string errorMessage)
         {
             string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "errorLog.txt");
-            using (StreamWriter writer = new StreamWriter(logFilePath, true)) // true means appending to the file
-            {
-                string logEntry = $"\"{DateTime.Now:O}\", \"{functionName}\", \"Error: {errorMessage}\"";
-                writer.WriteLine(logEntry);
-            }
+            using StreamWriter writer = new(logFilePath, true); // true means appending to the file
+            string logEntry = $"\"{DateTime.Now:O}\", \"{functionName}\", \"Error: {errorMessage}\"";
+            writer.WriteLine(logEntry);
         }
 
-        private static string GetCallerFunctionName([CallerMemberName] string memberName = "")
+        public static string GetSettings()
+        {
+            try
+            {
+                string settingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.txt");
+
+                // Check if the file does not exist
+                if (!File.Exists(settingsFilePath))
+                {
+                    // Create the file and write "language=" to it
+                    File.WriteAllText(settingsFilePath, "language=");
+                    return "en"; // return an empty string or default value if needed
+                }
+                else
+                {
+                    // If the file exists, read its content and extract the value after "language="
+                    using StreamReader reader = new(settingsFilePath);
+                    string? line = reader.ReadLine();
+                    if (line != null && line.StartsWith("language="))
+                    {
+                        return line["language=".Length..];
+                    }
+                    else
+                    {
+                        return "en"; // return an empty string or default value if the expected content is not found
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                LogError(nameof(GetSettings), "Error reading settings file.");
+                return "en";
+            }
+           
+        }
+
+        public static void UpdateLanguageInSettingsFile(string language)
+        {
+            try
+            {
+                string settingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.txt");
+
+                // Check if the file exists
+                if (!File.Exists(settingsFilePath))
+                {
+                    // If the file doesn't exist, create it with the language parameter
+                    File.WriteAllText(settingsFilePath, $"language={language}"); 
+                    return;
+                }
+
+                // Read all lines from the file
+                var lines = File.ReadAllLines(settingsFilePath).ToList();
+
+                // Find the index of the line with the 'language=' prefix
+                int index = lines.FindIndex(line => line.StartsWith("language="));
+
+                // If found, update that line with the new language value
+                if (index != -1)
+                {
+                    lines[index] = $"language={language}";
+                }
+                else
+                {
+                    // If not found, add the language setting to the end of the file
+                    lines.Add($"language={language}");
+                }
+
+                // Write the modified lines back to the file
+                File.WriteAllLines(settingsFilePath, lines);
+            }
+            catch (Exception)
+            {
+                LogError(nameof(UpdateLanguageInSettingsFile), "Error updating settings file."); 
+                return;
+            }
+           
+        }
+
+
+        public static string GetCallerFunctionName([CallerMemberName] string memberName = "")
         {
             return memberName;
         }
-
     }
 }
-
