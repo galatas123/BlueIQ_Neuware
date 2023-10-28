@@ -7,29 +7,37 @@ using OfficeOpenXml.Style;
 using System.Diagnostics;
 using System.IO.Packaging;
 using System.Windows.Forms;
+using System.Net.Sockets;
+using System.Threading;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+
 
 namespace BlueIQ_Neuware
 {
     public partial class Form1 : Form
     {
-        private IWebDriver? driver;
-        private WebDriverWait? wait;
-        private ExcelPackage? package;
+        private string mode = "";
+        private string creditType = "";
+        private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
         public Form1()
         {
             InitializeComponent();
+            global_functions.StatusUpdated += UpdateUI_statusLabel;
+            Neuware.ProgressUpdated += UpdateUI_progressBar;
+            Neuware.StatusUpdated += UpdateUI_statusLabel;
+            Neuware.SetMaxProgress += UpdateUI_SetMaxProgressBar;
+            Neuware.ShowMessage += ShowMessage;
+            B2B.ProgressUpdated += UpdateUI_progressBar;
+            B2B.StatusUpdated += UpdateUI_statusLabel;
+            B2B.SetMaxProgress += UpdateUI_SetMaxProgressBar;
+            B2B.ShowMessage += ShowMessage;
+            manual_outbound.ProgressUpdated += UpdateUI_progressBar;
+            manual_outbound.StatusUpdated += UpdateUI_statusLabel;
+            manual_outbound.SetMaxProgress += UpdateUI_SetMaxProgressBar;
+            manual_outbound.ShowMessage += ShowMessage;
             this.Load += Form1_Load;
             this.FormClosing += MainForm_FormClosing;
-        }
-
-        private void SetupWebDriver()
-        {
-            var service = FirefoxDriverService.CreateDefaultService();
-            UpdateUI(() => service.HideCommandPromptWindow = true);
-
-            driver = new FirefoxDriver(service);
-            wait = new WebDriverWait(driver, TimeSpan.FromSeconds(20));
         }
 
         private void BrowseButton_Click(object sender, EventArgs e)
@@ -42,43 +50,120 @@ namespace BlueIQ_Neuware
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                UpdateUI(() => excelFilePathTextBox.Text = openFileDialog.FileName);
+                UpdateUI(() => excelPathTextBox.Text = openFileDialog.FileName);
             }
         }
 
         private async void StartButton_Click(object sender, EventArgs e)
         {
-            string username = usernameTextBox.Text;
-            string password = passwordTextBox.Text;
-            string excelFilePath = excelFilePathTextBox.Text;
-            string location = locationTextBox.Text;
-
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(excelFilePath) || string.IsNullOrWhiteSpace(location))
+            if (string.IsNullOrWhiteSpace(usernameTextBox.Text) || string.IsNullOrWhiteSpace(passwordTextBox.Text))
             {
-                // Display a message box to inform the user, specifying the parent form
-                var messageBoxResult = MessageBox.Show(this, "Please fill in all required fields (Username, Password, and Excel File).", "Missing Information", MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
-
-                return; // Exit the method early
+                MessageBox.Show("Please enter both username and password before proceeding.", "Missing Credentials", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            // For Neuware Buchen
+            if (mode == "Neuware")
+            {
+                if (string.IsNullOrWhiteSpace(locationTextBox.Text) ||
+                    string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
+                    string.IsNullOrWhiteSpace(excelPathTextBox.Text))
+                {
+                    MessageBox.Show("Please fill out all fields for Neuware Buchen mode before proceeding.", "Missing Information", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+            // For B2B Buchen
+            else if (mode == "B2B")
+            {
+                if (string.IsNullOrWhiteSpace(locationTextBox.Text) ||
+                    string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
+                    string.IsNullOrWhiteSpace(excelPathTextBox.Text))
+                {
+                    MessageBox.Show("Please fill out all fields for B2B Buchen mode before proceeding.", "Missing Information", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+            // For Manual Outbound
+            else if (mode == "Manual_outbound")
+            {
+                if (string.IsNullOrWhiteSpace(CreditcomboBox.Text) ||
+                    string.IsNullOrWhiteSpace(excelPathTextBox.Text))
+                {
+                    MessageBox.Show("Please fill out all fields for Manual Outbound mode before proceeding.", "Missing Information", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a mode before proceeding.", "Missing Information", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
             // Update the status label to show "Logging in"
             UpdateUI(() => statusLabel.Text = "Logging in");
 
-            bool loginSuccess = await Task.Run(() => LoginToSite(username, password));
+            bool loginSuccess = await Task.Run(() =>
+            {
+                if (cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    return false; // Or an appropriate value to indicate that the task was cancelled
+                }
+                return global_functions.LoginToSite(excelPathTextBox.Text, usernameTextBox.Text, passwordTextBox.Text);
+            }, cancellationTokenSource.Token);
             try
             {
                 if (loginSuccess)
                 {
                     //ShowMessage("Login successful");
                     UpdateUI(() => statusLabel.Text = "Logged in");
-
+                    try
+                    {
+                        switch (mode)
+                        {
+                            case "Neuware":
+                                await Task.Run(() =>
+                                {
+                                    if (cancellationTokenSource.Token.IsCancellationRequested)
+                                    {
+                                        return; // Exit if cancellation was requested
+                                    }
+                                    Neuware.start_neuware(locationTextBox.Text, jobOrPoTextBox.Text, cancellationTokenSource.Token);
+                                });
+                                break;
+                            case "B2B":
+                                await Task.Run(() =>
+                                {
+                                    if (cancellationTokenSource.Token.IsCancellationRequested)
+                                    {
+                                        return; // Exit if cancellation was requested
+                                    }
+                                    B2B.start_b2b(locationTextBox.Text, jobOrPoTextBox.Text, creditType, cancellationTokenSource.Token);
+                                });
+                                break;
+                            case "Manual_outbound":
+                                await Task.Run(() =>
+                                {
+                                    if (cancellationTokenSource.Token.IsCancellationRequested)
+                                    {
+                                        return; // Exit if cancellation was requested
+                                    }
+                                    manual_outbound.start_manual_outbound(cancellationTokenSource.Token);
+                                });
+                                break;
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // This exception will be thrown if the task is cancelled.
+                        UpdateUI(() => statusLabel.Text = "Operation was cancelled");
+                        return;
+                    }
                     // Process the Excel file after successful login
-                    await Task.Run(() => ProcessExcelFile(excelFilePath, location));
                     UpdateUI(() => statusLabel.Text = "Devices have been added");
                     ShowMessage("The devices have been booked, please check the excel file to confirm");
                 }
                 else
                 {
-                    ShowMessage("Login failed");
+                    ShowMessage("Login failed. Check username and password");
                     UpdateUI(() => statusLabel.Text = "Login failed");
                 }
             }
@@ -92,337 +177,60 @@ namespace BlueIQ_Neuware
             {
                 usernameTextBox.Text = "";
                 passwordTextBox.Text = "";
-                excelFilePathTextBox.Text = "";
+                excelPathTextBox.Text = "";
                 locationTextBox.Text = "";
-                if (package != null && package.Workbook.Worksheets.Count > 0)
-                {
-                    // Save the Excel file (if it has changes)
-                    package.Save();
+                jobOrPoTextBox.Text = "";
+                if (comboBoxMode != null)
+                    comboBoxMode.SelectedIndex = -1; // Assuming comboBox1 is the name of your ComboBox; adjust accordingly
 
-                    // Close the Excel package and release resources
-                    package.Dispose();
+                if (CreditcomboBox != null)
+                    CreditcomboBox.SelectedIndex = -1;
+
+                // Close the global_functions.driver and package
+                if (global_functions.driver != null)
+                {
+                    global_functions.driver.Quit();
+                    global_functions.driver = null;
+                }
+
+                if (global_functions.package != null)
+                {
+                    global_functions.package.Save();
+                    global_functions.package.Dispose();
+                    global_functions.package = null;
                 }
             }
         }
 
-        public bool LoadWebsite()
+        private void stopButton_Click(object sender, EventArgs e)
         {
-            try
+            // 3. Signal tasks/threads to stop
+            cancellationTokenSource.Cancel();
+
+            // 2. Reset all the TextBox values
+            locationTextBox.Text = "";
+            jobOrPoTextBox.Text = "";
+            usernameTextBox.Text = "";
+            passwordTextBox.Text = "";
+            excelPathTextBox.Text = "";
+            // ... Add other TextBox controls as needed
+
+            // Close the WebDriver if it exists
+            if (global_functions.driver != null)
             {
-                wait.Until(d => (bool)((IJavaScriptExecutor)d).ExecuteScript("return document.readyState == 'complete'"));
-                return true;
+                global_functions.driver.Quit();
+                global_functions.driver = null;
             }
-            catch (WebDriverTimeoutException)
+
+            // Close the Excel package if it exists
+            if (global_functions.package != null)
             {
-                return false;
-            }
-        }
-
-        public bool WaitForElementToDisappear(string elementXpath, int retries = 3)
-        {
-            for (int i = 0; i < retries; i++)
-            {
-                try
-                {
-                    wait.Until(ExpectedConditions.InvisibilityOfElementLocated(By.XPath(elementXpath)));
-                    return true;
-                }
-                catch (WebDriverTimeoutException)
-                {
-                    if (i < retries - 1)
-                        UpdateUI(() => statusLabel.Text = "Retrying..      .");
-                }
-            }
-            UpdateUI(() => statusLabel.Text = "Page took too long to load");
-            return false;
-        }
-
-        public bool LoadPage(string page)
-        {
-            driver.Navigate().GoToUrl(page);
-            return LoadWebsite();
-        }
-
-        public bool LoginToSite(string username, string password)
-        {
-            if (!LoadPage(BlueDictionary.LINKS["LOGIN"]))
-                return false;
-
-            try
-            {
-                IWebElement usernameElem = wait.Until(driver => driver.FindElement(By.XPath(BlueDictionary.LOGIN_PAGE["USERNAME"])));
-                IWebElement passwordElem = wait.Until(driver => driver.FindElement(By.XPath(BlueDictionary.LOGIN_PAGE["PASSWORD"])));
-                usernameElem.SendKeys(username);
-                passwordElem.SendKeys(password);
-
-                IWebElement loginButton = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.LOGIN_PAGE["BUTTON"])));
-                loginButton.Click();
-
-                if (!WaitForElementToDisappear(BlueDictionary.LOGIN_PAGE["LOADING"]))
-                    return false;
-                UpdateUI(() => statusLabel.Text = "Loading done");
-                try
-                {
-                    // Create a separate WebDriverWait instance with a shorter timeout
-                    var customWait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
-
-                    IWebElement errorMessageElem = customWait.Until(ExpectedConditions.PresenceOfAllElementsLocatedBy(By.XPath(BlueDictionary.LOGIN_PAGE["LOGIN_ERROR"])))[0];
-                    string errorMessage = errorMessageElem.Text.Trim();
-                    UpdateUI(() => statusLabel.Text = "Error read");
-
-                    if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-                catch (WebDriverTimeoutException)
-                {
-                    return true;
-                }
-
-            }
-            catch (Exception e)
-            {
-                LogError(nameof(LoginToSite),(e.ToString()));
-                return false;
+                global_functions.package.Save();
+                global_functions.package.Dispose();
+                global_functions.package = null;
             }
         }
 
-        public bool AddPallet(string pallet)
-        {
-            try
-            {
-                UpdateUI(() => statusLabel.Text = "Adding Pallet");
-                driver.Navigate().GoToUrl(BlueDictionary.LINKS["AUDIT"]); // Replace with your actual URL
-                var palletElement = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["PALLET_ID"]))); // Replace with your actual XPath
-                palletElement.SendKeys(pallet);
-                var checkElement = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.AUDIT_PAGE["LOCK_PALLET"]))); // Replace with your actual XPath
-                checkElement.Click();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                // Maybe log the error or update a label on your form
-                LogError(nameof(AddPallet), (ex.ToString()));
-                return false;
-            }
-        }
-
-        private void ProcessExcelFile(string excelFilePath, string location)
-        {
-            int counter = 0;
-            string oldPallet = "";
-            bool newPallet = false;
-            Dictionary<string, object> data = new();
-
-            package = new OfficeOpenXml.ExcelPackage(new FileInfo(excelFilePath));
-            var ws = package.Workbook.Worksheets[0]; // Access package from the class level
-            int maxColumn = ws.Dimension.End.Column;
-
-            // Find the last row with data
-            int rowCount = ws.Cells[ws.Dimension.Address].Rows;
-
-            UpdateUI(() => progressBar.Maximum = rowCount - 2); // Deducting 2 as you're starting from the second row and excluding the header row.
-            UpdateUI(() => progressBar.Value = 0); // Reset the progress bar at the start.
-
-            for (int row = 2; row <= rowCount; row++)
-            {
-                // Check if the row is empty (assuming column 2 is the part number column)
-                if (string.IsNullOrEmpty(ws.Cells[row, 2].Text))
-                {
-                    // Skip empty rows
-                    continue;
-                }
-
-                UpdateUI(() => statusLabel.Text = "Booking next device");
-                data["part_number"] = ws.Cells[row, 2].Text;
-                data["serial"] = ws.Cells[row, 3].Text;
-                data["pallet"] = ws.Cells[row, 4].Text;
-                data["pono"] = ws.Cells[row, 5].Text;
-
-                if (counter < 2)
-                {
-                    // For debugging purposes
-                    ShowMessage($"Part Number: {data["part_number"]}, Serial: {data["serial"]}, Pallet: {data["pallet"]}, PONO: {data["pono"]}");
-                    DialogResult result = MessageBox.Show("Want to continue?", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
-                    if (result == DialogResult.No)
-                    {
-                        return; // Exit the function if the user chooses "No"
-                    }
-                }
-
-                if (oldPallet != data["pallet"].ToString())
-                {
-                    newPallet = true;
-                }
-
-                try
-                {
-                    if (newPallet && !string.IsNullOrEmpty(data["pallet"].ToString()))
-                    {
-#pragma warning disable CS8604 // Possible null reference argument.
-                        bool isPalletAdded = AddPallet(data["pallet"].ToString());
-#pragma warning restore CS8604 // Possible null reference argument.
-                        if (!isPalletAdded)
-                        {
-                            oldPallet = "";
-                            ws.Cells[row, maxColumn + 1].Value = "Pallet Error";
-                        }
-                    }
-                    bool isDeviceAdded = AddDevice(data, newPallet, location); // Assuming `driver` and `wait` are accessible here
-                    ws.Cells[row, maxColumn + 1].Value = isDeviceAdded ? "Done" : "Error";
-                    package.Save(); // Save changes to the Excel file after every row update
-                    newPallet = false;
-                    if (!string.IsNullOrEmpty(data["pallet"].ToString()))
-                    {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                        oldPallet = data["pallet"].ToString();
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogError(nameof(ProcessExcelFile), (ex.ToString()));
-                    continue;
-                }
-                finally
-                {
-                    if (counter < 2)
-                    {
-                        ShowMessage($"Data Processed: {string.Join(", ", data.Values)}");
-                        counter++;
-                    }
-                    UpdateUI(() =>
-                    {
-                        progressBar.Value += 1;
-
-                        // Calculate and update the percentage label
-                        int percentage = (int)(((double)progressBar.Value / (double)progressBar.Maximum) * 100);
-                        percentLabel.Text = $"{percentage}%";
-                    });
-                }
-            }
-            package.Save();
-        }
-
-
-
-        private bool AddDevice(Dictionary<string, object> data, bool newPallet, string location)
-        {
-            try
-            {
-                if (!WaitForElementToDisappear(BlueDictionary.AUDIT_PAGE["LOADING"]))
-                    return false;
-
-                System.Threading.Thread.Sleep(800);
-
-                var partEl = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"])));
-                System.Threading.Thread.Sleep(800);
-
-                partEl.SendKeys(data["part_number"].ToString());
-                partEl.SendKeys(OpenQA.Selenium.Keys.Tab);
-
-                if (!WaitForElementToDisappear(BlueDictionary.AUDIT_PAGE["LOADING"]))
-                    return false;
-
-                try
-                {
-                    var serialEl = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"])));
-                    serialEl.SendKeys(data["serial"].ToString());
-                }
-                catch (Exception)
-                {
-                    partEl = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"])));
-                    partEl.SendKeys(data["part_number"].ToString());
-                    partEl.SendKeys(OpenQA.Selenium.Keys.Tab);
-
-                    if (!WaitForElementToDisappear(BlueDictionary.AUDIT_PAGE["LOADING"]))
-                        return false;
-
-                    var serialElRetry = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"])));
-                    serialElRetry.SendKeys(data["serial"].ToString());
-                }
-
-                var assetEl = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["ASSET"])));
-                assetEl.SendKeys(BlueDictionary.ASSET.ToString());
-
-                var weightEl = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["WEIGHT"])));
-                weightEl.SendKeys(BlueDictionary.WEIGHT.ToString());
-
-                if (newPallet)
-                {
-                    var locationEl = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["LOCATION"])));
-                    locationEl.SendKeys(location);
-
-                    var lockLocEl = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.AUDIT_PAGE["LOCK_LOCATION"])));
-                    lockLocEl.Click();
-                }
-
-                var warrantyEl = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.AUDIT_PAGE["WARRANTY"])));
-                warrantyEl.Click();
-
-                var inBoxEl = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.AUDIT_PAGE["NEW_IN_BOX"])));
-                inBoxEl.Click();
-
-                var newStockEl = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.AUDIT_PAGE["NEW_STOCK"])));
-                newStockEl.Click();
-
-                var ponoEl = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["PONO"])));
-                ponoEl.SendKeys(data["pono"].ToString());
-
-                System.Threading.Thread.Sleep(500);
-
-                var saveEl = wait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.AUDIT_PAGE["SAVE"])));
-                saveEl.Click();
-
-                if (!WaitForElementToDisappear(BlueDictionary.AUDIT_PAGE["LOADING"]))
-                    return false;
-
-                if (!TryCloseSecondTab())
-                {
-                    LogError(nameof(AddDevice), "Failed to close the second tab after multiple attempts.");
-                    return false;
-                }
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogError(nameof(AddDevice), (ex.ToString()));
-                return false;
-            }
-        }
-
-        private bool TryCloseSecondTab(int retries = 3)
-        {
-            for (int i = 0; i < retries; i++)
-            {
-                var driverWindowHandles = driver.WindowHandles;
-                if (driverWindowHandles.Count > 1)
-                {
-                    try
-                    {
-                        driver.SwitchTo().Window(driverWindowHandles[1]);
-                        driver.Close();
-                        driver.SwitchTo().Window(driverWindowHandles[0]);
-                        return true; // Successfully closed the second tab.
-                    }
-                    catch (Exception ex)
-                    {
-                        LogError(nameof(TryCloseSecondTab), (ex.ToString()));
-                    }
-                }
-
-                // If second tab was not found or there was an issue, wait for a short duration before retrying.
-                System.Threading.Thread.Sleep(500);
-            }
-
-            // If we reach here, it means we've exhausted our retries and the second tab couldn't be closed.
-            return false;
-        }
 
         private void UpdateUI(Action action)
         {
@@ -436,6 +244,25 @@ namespace BlueIQ_Neuware
             }
         }
 
+        private void UpdateUI_statusLabel(string statusMessage)
+        {
+            UpdateUI(() => statusLabel.Text = statusMessage);
+        }
+
+        private void UpdateUI_progressBar(int value, string percentageText = "")
+        {
+            UpdateUI(() =>
+            {
+                progressBar.Value = value;
+                percentLabel.Text = percentageText;
+            });
+        }
+
+        private void UpdateUI_SetMaxProgressBar(int maxValue)
+        {
+            UpdateUI(() => progressBar.Maximum = maxValue);
+        }
+
         public static void ShowMessage(string message)
         {
             MessageBox.Show(message, "Message", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
@@ -445,23 +272,23 @@ namespace BlueIQ_Neuware
         {
             // Bring the form to the front when the application starts
             this.BringToFront();
-            SetupWebDriver();
         }
 
         private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
         {
-            // Check if the ExcelPackage is not null and the Excel file is open
-            if (package != null && package.Workbook.Worksheets.Count > 0)
+            // Close the WebDriver if it exists
+            if (global_functions.driver != null)
             {
-                // Save the Excel file (if it has changes)
-                package.Save();
-
-                // Close the Excel package and release resources
-                package.Dispose();
+                global_functions.driver.Quit();
+                global_functions.driver = null;
             }
 
-            // Close the WebDriver if it exists
-            driver?.Quit();
+            // Close the Excel package if it exists
+            if (global_functions.package != null)
+            {
+                global_functions.package.Dispose();
+                global_functions.package = null;
+            }
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
@@ -472,6 +299,19 @@ namespace BlueIQ_Neuware
             }
         }
 
+        private void LocationTextBox_Enter(object sender, EventArgs e)
+        {
+            toolTipLocation.Show("Please fill a sorting location", locationTextBox);
+        }
+        private void PoNoTextBox_Enter(object sender, EventArgs e)
+        {
+            toolTipJobOrPoNo.Show("Please fill a valid Pono or Job ID number", jobOrPoTextBox);
+        }
+        private void excelFilePathTextBox_Enter(object sender, EventArgs e)
+        {
+            toolTipExcel.Show("Columns should be:\nA:Serial number\nB:part number", excelPathTextBox);
+        }
+
         private void createExcelTemplateToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using (ExcelPackage excel = new ExcelPackage())
@@ -479,17 +319,22 @@ namespace BlueIQ_Neuware
                 var ws = excel.Workbook.Worksheets.Add("Neuware");
 
                 // Headers
-                ws.Cells["A1"].Value = "scan";
-                ws.Cells["B1"].Value = "Part number";
-                ws.Cells["C1"].Value = "Serial number";
-                ws.Cells["D1"].Value = "Pallet";
-                ws.Cells["E1"].Value = "PoNo";
+                if (mode == "Manual_outbound")
+                {
+                    ws.Cells["A1"].Value = "Old ScanID";
+                    ws.Cells["B1"].Value = "New Serial";
+                }
+                else
+                {
+                    ws.Cells["A1"].Value = "Serial number";
+                    ws.Cells["B1"].Value = "Part number";
+                }
 
                 // Define the range for the table.
-                var tableRange = ws.Cells["A1:E2"];
+                var tableRange = ws.Cells["A1:B2"];
 
                 // Create a table based on this range.
-                var table = ws.Tables.Add(tableRange, "NeuwareTable");
+                var table = ws.Tables.Add(tableRange, "Table");
 
                 // Format the table with gray color.
                 //table.TableStyle = OfficeOpenXml.Table.TableStyles.Medium11;// Start with no style
@@ -504,7 +349,7 @@ namespace BlueIQ_Neuware
                 ws.Cells[ws.Dimension.Address].AutoFitColumns();
 
                 SaveFileDialog saveFileDialog = new SaveFileDialog();
-                saveFileDialog.FileName = "Neuware";
+                saveFileDialog.FileName = "template_" + mode;
                 saveFileDialog.DefaultExt = ".xlsx";
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
@@ -514,13 +359,63 @@ namespace BlueIQ_Neuware
             }
         }
 
-        private void LogError(string functionName, string errorMessage)
+        private void comboBoxMode_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "errorLog.txt");
-            using (StreamWriter writer = new StreamWriter(logFilePath, true)) // true means appending to the file
+            // Reset visibility for all controls first
+            locationLabel.Visible = false;
+            locationTextBox.Visible = false;
+            jobOrPoLabel.Visible = false;
+            jobOrPoTextBox.Visible = false;
+            browseButton.Visible = false;
+            excelPathTextBox.Visible = false;
+            creditLabel.Visible = false;
+            CreditcomboBox.Visible = false;
+
+            // Check the selected item in the combobox
+            string selectedMode = comboBoxMode.SelectedItem?.ToString() ?? string.Empty;
+            switch (selectedMode)
             {
-                string logEntry = $"\"{DateTime.Now:O}\", \"{functionName}\", \"Error: {errorMessage}\"";
-                writer.WriteLine(logEntry);
+                case "Neuware Buchen":
+                    mode = "Neuware";
+                    locationLabel.Visible = true;
+                    locationTextBox.Visible = true;
+                    jobOrPoLabel.Text = "PoNo";
+                    jobOrPoLabel.Visible = true;
+                    jobOrPoTextBox.Visible = true;
+                    browseButton.Visible = true;
+                    excelPathTextBox.Visible = true;
+                    break;
+                case "B2B Buchen":
+                    mode = "B2B";
+                    locationLabel.Visible = true;
+                    locationTextBox.Visible = true;
+                    jobOrPoLabel.Text = "Job ID";
+                    jobOrPoLabel.Visible = true;
+                    jobOrPoTextBox.Visible = true;
+                    browseButton.Visible = true;
+                    excelPathTextBox.Visible = true;
+                    break;
+                case "Manual Outbound":
+                    mode = "Manual_outbound";
+                    creditLabel.Visible = true;
+                    CreditcomboBox.Visible = true;
+                    browseButton.Visible = true;
+                    excelPathTextBox.Visible = true;
+                    break;
+            }
+        }
+
+        private void CreditcomboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string selectedMode = CreditcomboBox.SelectedItem?.ToString() ?? string.Empty;
+            switch (selectedMode)
+            {
+                case "Full Credit":
+                    creditType = "Full Credit";
+                    break;
+                case "Swap":
+                    creditType = "Swap";
+                    break;
             }
         }
 

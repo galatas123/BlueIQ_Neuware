@@ -1,11 +1,13 @@
-﻿namespace BlueIQ_Neuware
+﻿using System.Collections.ObjectModel;
+
+namespace BlueIQ_Neuware
 {
     internal class BlueDictionary
     {
         public const string NEW_DEVICES_LOCATION = "68.SRT15";
         public const int WEIGHT = 1;
         public const string ASSET = "NA";
-
+        public const string loading = "//*[@id=\"ctl00_ctl00_imgWorking\"]";
         public static readonly Dictionary<string, string> LINKS = new()
         {
             { "LOGIN", "https://blueiq.cloudblue.com/" },
@@ -42,7 +44,8 @@
             { "LOCK_LOCATION", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_chkLockLocation\"]" },
             { "WARRANTY", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div[3]/div[8]/div/div[6]/div[2]/select/option[2]" },
             { "APPROVED", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div[3]/div[13]/div/div/table/tbody/tr/td/table/tbody/tr[4]/td[2]/div/div/select/option[4]" },
-            { "SERVICE_TYPE", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div[3]/div[13]/div/div/table/tbody/tr/td/table/tbody/tr[2]/td[2]/div/div[1]/select/option[4]" },
+            { "SERVICE_TYPE_CREDIT", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div[3]/div[13]/div/div/table/tbody/tr/td/table/tbody/tr[2]/td[2]/div/div[1]/select/option[4]" },
+            { "SERVICE_TYPE_SWAP", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div[3]/div[13]/div/div/table/tbody/tr/td/table/tbody/tr[2]/td[2]/div/div[1]/select/option[3]" },
             { "NEW_IN_BOX", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_chkNewinBox\"]" },
             { "PONO", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_dynamicUFDFields_dlDynamicCtrls_ctl03_txt9730\"]" },
             { "SAVE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnSaveNew\"]" },
@@ -70,26 +73,64 @@
             { "TRACKING_IN", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[3]/td/div[1]/div/div[11]/div/table/tbody/tr/td/table[1]/tbody/tr[2]/td[4]" },
             { "SHIP_METHOD_IN", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[3]/td/div[1]/div/div[11]/div/table/tbody/tr/td/table[1]/tbody/tr[2]/td[6]" },
             { "CARRIER_IN", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[3]/td/div[1]/div/div[11]/div/table/tbody/tr/td/table[1]/tbody/tr[2]/td[7]" },
-            { "TRACKING_OUT", "/html/body/form/div[3]/div[6]/div/div/2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[3]/td/div[1]/div/div[10]/div[1]/table/tbody/tr/td/table[1]/tbody/tr[2]/td[8]" },
-            { "SHIPPED_OUT", "/html/body/form/div[3]/div[6]/div/div/2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[3]/td/div[1]/div/div[10]/div[1]/table/tbody/tr/td/table[1]/tbody/tr[2]/td[10]" },
-            { "CARRIER_OUT", "/html/body/form/div[3]/div[6]/div/div/2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[3]/td/div[1]/div/div[10]/div[1]/table/tbody/tr/td/table[1]/tbody/tr[2]/td[14]" }
+            { "TRACKING_OUT", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[3]/td/div[1]/div/div[10]/div[1]/table/tbody/tr/td/table[1]/tbody/tr[2]/td[8]" },
+            { "SHIPPED_OUT", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[3]/td/div[1]/div/div[10]/div[1]/table/tbody/tr/td/table[1]/tbody/tr[2]/td[10]" },
+            { "CARRIER_OUT", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[3]/td/div[1]/div/div[10]/div[1]/table/tbody/tr/td/table[1]/tbody/tr[2]/td[14]" },
+            { "COPY_ORDER", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkCopyOrder\"]" },
+            { "CONFIRM1_YES", "ctl00_ctl00_MainContent_PageMainContent_btnCopyYes" },  // id
+            { "NEW_ORDER_ID", "ctl00_ctl00_MainContent_PageMainContent_hdnNewOrderId" },  // id
+            { "NAVIGATE_NO", "ctl00_ctl00_MainContent_PageMainContent_btnNewOrderNo" },  // id
+            { "SHIP_TO", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_pcCustomer_imgShippingANDBilling1\"]" },
+            { "COMPANY_DROPDOWN", "ctl00_ctl00_MainContent_PageMainContent_popupAddressEdit_ucASPxPanel1_CustomerShiipingBilling_ddlCustSource_I" },
+            { "FLENSBURG_OPTION", "ctl00_ctl00_MainContent_PageMainContent_popupAddressEdit_ucASPxPanel1_CustomerShiipingBilling_ddlCustSource_DDD_L_LBI0T0" },
+            { "LOADING_SHIPTO", "ctl00_ctl00_imgWorking" },  // id
+            { "LOADING_SHIPTO2", "//*[@id=\"ctl00_ctl00_imgWorking\"]" },
+            { "SHIP_SAVE", "ctl00_ctl00_MainContent_PageMainContent_popupAddressEdit_ucASPxPanel1_btnShippingSave_CD" },  // ID
+            { "FRAME_ADDRESS", "ctl00_ctl00_MainContent_PageMainContent_popupAddress_CIF-1" },
+            { "ADDRESS_CHECKBOX", "GrdValidatedAddressDetails_header1_chkUserAddressAll" },  // ID
+            { "SERVICE_TYPE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_ddlServiceType_B-1Img\"]" },
+            { "SWAP", "ctl00_ctl00_MainContent_PageMainContent_ddlServiceType_DDD_L_LBI2T0" },
+            { "RETURN_TO_SOURCE", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[1]/td/table/tbody/tr[2]/td/table[2]/tbody/tr[1]/td/table/tbody/tr[1]/td/table/tbody[1]/tr[3]/td[2]/select/option[25]" },
+            { "INCLUDE_LABEL_CHECKBOX", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_chkIncludeReturnlabel\"]" },
+            { "SUBMIT_ORDER", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkSubmitOrder\"]" },
+            { "CONFIRM_SUBMIT", "ctl00_ctl00_MainContent_PageMainContent_popupMessageBoxForOrderSubmit_ASPxPanel6_btnSubmitYes" }, // ID
+            { "SAVE_ORDER", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnUpdate\"]" },
+            { "SWAP_ORDER_REF", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_pcCustomer_txtSwapOrderRef\"]" },
+            { "ADD_SCAN", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkAddScanID\"]" },
+            { "INPUT_SCAN", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtAddScanID\"]" },
+            { "ADD", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnAddScanID\"]" },
+            { "CANCEL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnAddScanIDCancel\"]" },
+            { "MESSAGE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lblAddScanIDErrorMessage\"]" },
+            { "RECLAIM_LABEL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvDetails_DXSelBtn1_D\"]" },
+            { "DELETE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkDelete\"]" },
+            { "CONFIRM_DEL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnDeletsSelectedItems\"]" }
         };
+
 
         public static readonly Dictionary<string, string> REPAIR_DETAIL_PAGE = new()
         {
             { "SERIAL_NO", "//*[@id=\"lblSerialNumber\"]" },
             { "SERIAL_NO_TEXT", "//*[@id=\"txtSerialNumber\"]" },
             { "SCAN_ID", "//*[@id=\"lblCurrentScanID\"]" },
+            { "RETURN_INFORMATION", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnViewReturnInformation\"]" },
             { "REPAIR_INPUT", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtNotes\"]" },
-            { "REPAIR_NOTES", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtRepairNotesHistory_I\"]" }
+            { "REPAIR_NOTES", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtRepairNotesHistory_I\"]" },
+            { "SITE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_tabSource_PCAssetDetails_ddlSite\"]" },
+            { "ORDER_ID", "/html/body/form/div[3]/div[2]/div/div/div/div/div[2]/div[5]/table/tbody/tr/td/div[2]/table/tbody/tr[2]/td[1]" },
+            { "CLOSE_POPUP", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_popupViewReturnInfo_HCB-1\"]" },
+            { "LOADING", "//*[@id=\"ctl00_ctl00_imgWorking\"]" },
+            { "DIAG_TABLE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_tabSource_PCAssetDetails_ddlRepairCodes_B-1\"]" },
+            { "DIAG", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_tabSource_PCAssetDetails_ddlRepairCodes_DDD_DDTC_lstRepairCodes_28137_D\"]" },
+            { "SAVE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnSave\"]" }
         };
 
         public static readonly Dictionary<string, string> RECEIVING_PAGE = new()
         {
+            { "JOB_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtJobID\"]" },
             { "LOAD_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lblCurrentLoadID\"]" },
             { "SEARCH_JOB", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtJobID\"]" },
             { "SEARCH_BTN", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkShowJobs\"]" },
-            { "PALLET_ID", "//*[@id=\"lblPalletID\"]" },
+            { "PALLET_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvLoadPallet_ctl02_lblPallet\"]" }, 
             { "OTHER", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/div/div[1]/div[2]/select/option[6]" },
             { "LOADING", "//*[@id=\"ctl00_ctl00_UpdateProgress1\"]" },
             { "BOL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtBOL\"]" },
@@ -102,10 +143,11 @@
             { "DUNNAGE_PALLET", "/html/body/form/div[4]/div/div[2]/div[1]/div[2]/div[2]/select/option[2]" },
             { "AUDIO", "/html/body/form/div[4]/div/div[3]/div[1]/div[2]/table/tbody/tr[2]/td[2]/select/option[4]" },
             { "MISCELLANEOUS", "/html/body/form/div[4]/div/div[3]/div[1]/div[2]/table/tbody/tr[2]/td[5]/select/option[13]" },
-            { "QTY_DEVICES", "//*[@id=\"txtQuantity\"]" },
+            { "QTY_DEVICES", "//*[@id=\"txtQuantity\"]" }, 
             { "SORT", "/html/body/form/div[4]/div/div[2]/div[2]/div[2]/div[2]/select/option[3]" },
             { "LOCATION", "//*[@id=\"txtMoveToLocation\"]" },
             { "SAVE", "/html/body/form/div[4]/div/div[1]/div[2]/div[2]/div[3]/div/a/img" },
+            //{ "SAVE", "//*[@id=\"btnSave\"]" },
             { "PRINT", "//*[@id=\"btnPrint\"]" }
         };
 

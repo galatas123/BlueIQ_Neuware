@@ -34,7 +34,7 @@
             passwordTextBox = new TextBox();
             username_label = new Label();
             password_label = new Label();
-            excelFilePathTextBox = new TextBox();
+            excelPathTextBox = new TextBox();
             progressBar = new ProgressBar();
             statusStrip1 = new StatusStrip();
             statusLabel = new ToolStripStatusLabel();
@@ -43,13 +43,21 @@
             browseButton = new Button();
             locationLabel = new Label();
             locationTextBox = new TextBox();
-            infoLabel = new Label();
-            toolTip1 = new ToolTip(components);
+            toolTipExcel = new ToolTip(components);
             toolStrip1 = new ToolStrip();
             toolStripDropDownButton1 = new ToolStripDropDownButton();
             aboutToolStripMenuItem = new ToolStripMenuItem();
             createExcelTemplateToolStripMenuItem = new ToolStripMenuItem();
             percentLabel = new Label();
+            jobOrPoLabel = new Label();
+            jobOrPoTextBox = new TextBox();
+            toolTipLocation = new ToolTip(components);
+            toolTipJobOrPoNo = new ToolTip(components);
+            comboBoxMode = new ComboBox();
+            taskLabel = new Label();
+            CreditcomboBox = new ComboBox();
+            creditLabel = new Label();
+            stopButton = new Button();
             statusStrip1.SuspendLayout();
             toolStrip1.SuspendLayout();
             SuspendLayout();
@@ -58,7 +66,7 @@
             // 
             usernameTextBox.BackColor = Color.White;
             usernameTextBox.BorderStyle = BorderStyle.None;
-            usernameTextBox.Location = new Point(83, 45);
+            usernameTextBox.Location = new Point(387, 168);
             usernameTextBox.Name = "usernameTextBox";
             usernameTextBox.Size = new Size(100, 16);
             usernameTextBox.TabIndex = 0;
@@ -67,7 +75,7 @@
             // 
             passwordTextBox.BackColor = Color.White;
             passwordTextBox.BorderStyle = BorderStyle.None;
-            passwordTextBox.Location = new Point(83, 85);
+            passwordTextBox.Location = new Point(387, 235);
             passwordTextBox.Name = "passwordTextBox";
             passwordTextBox.PasswordChar = '*';
             passwordTextBox.Size = new Size(100, 16);
@@ -77,7 +85,7 @@
             // 
             username_label.AutoSize = true;
             username_label.ForeColor = SystemColors.ActiveCaptionText;
-            username_label.Location = new Point(12, 45);
+            username_label.Location = new Point(307, 169);
             username_label.Name = "username_label";
             username_label.Size = new Size(60, 15);
             username_label.TabIndex = 2;
@@ -86,20 +94,22 @@
             // password_label
             // 
             password_label.AutoSize = true;
-            password_label.Location = new Point(12, 86);
+            password_label.Location = new Point(307, 236);
             password_label.Name = "password_label";
             password_label.Size = new Size(57, 15);
             password_label.TabIndex = 3;
             password_label.Text = "Password";
             password_label.TextAlign = ContentAlignment.TopRight;
             // 
-            // excelFilePathTextBox
+            // excelPathTextBox
             // 
-            excelFilePathTextBox.BackColor = Color.White;
-            excelFilePathTextBox.Location = new Point(83, 165);
-            excelFilePathTextBox.Name = "excelFilePathTextBox";
-            excelFilePathTextBox.Size = new Size(100, 23);
-            excelFilePathTextBox.TabIndex = 4;
+            excelPathTextBox.BackColor = Color.White;
+            excelPathTextBox.Location = new Point(83, 102);
+            excelPathTextBox.Name = "excelPathTextBox";
+            excelPathTextBox.Size = new Size(100, 23);
+            excelPathTextBox.TabIndex = 4;
+            excelPathTextBox.Visible = false;
+            excelPathTextBox.Enter += excelFilePathTextBox_Enter;
             // 
             // progressBar
             // 
@@ -138,7 +148,7 @@
             startButton.BackColor = SystemColors.Highlight;
             startButton.FlatStyle = FlatStyle.Flat;
             startButton.ForeColor = Color.Black;
-            startButton.Location = new Point(334, 317);
+            startButton.Location = new Point(283, 314);
             startButton.Name = "startButton";
             startButton.Size = new Size(126, 23);
             startButton.TabIndex = 7;
@@ -148,41 +158,35 @@
             // 
             // browseButton
             // 
-            browseButton.Location = new Point(2, 165);
+            browseButton.Location = new Point(2, 102);
             browseButton.Name = "browseButton";
             browseButton.Size = new Size(75, 23);
             browseButton.TabIndex = 8;
             browseButton.Text = "browse...";
             browseButton.UseVisualStyleBackColor = true;
+            browseButton.Visible = false;
             browseButton.Click += BrowseButton_Click;
             // 
             // locationLabel
             // 
             locationLabel.AutoSize = true;
-            locationLabel.Location = new Point(12, 126);
+            locationLabel.Location = new Point(12, 29);
             locationLabel.Name = "locationLabel";
             locationLabel.Size = new Size(53, 15);
             locationLabel.TabIndex = 9;
             locationLabel.Text = "Location";
+            locationLabel.Visible = false;
             // 
             // locationTextBox
             // 
             locationTextBox.BackColor = Color.White;
             locationTextBox.BorderStyle = BorderStyle.None;
-            locationTextBox.Location = new Point(83, 126);
+            locationTextBox.Location = new Point(83, 28);
             locationTextBox.Name = "locationTextBox";
             locationTextBox.Size = new Size(100, 16);
             locationTextBox.TabIndex = 10;
-            // 
-            // infoLabel
-            // 
-            infoLabel.AutoSize = true;
-            infoLabel.Location = new Point(189, 173);
-            infoLabel.Name = "infoLabel";
-            infoLabel.Size = new Size(153, 15);
-            infoLabel.TabIndex = 11;
-            infoLabel.Text = "Hover for Excel information";
-            toolTip1.SetToolTip(infoLabel, "Columns should be:\nA:Scan\nB:part number\nC:Serial number\nD:Pallet\nE:PoNO");
+            locationTextBox.Visible = false;
+            locationTextBox.Enter += LocationTextBox_Enter;
             // 
             // toolStrip1
             // 
@@ -227,22 +231,100 @@
             percentLabel.TabIndex = 13;
             percentLabel.Text = "0%";
             // 
+            // jobOrPoLabel
+            // 
+            jobOrPoLabel.AutoSize = true;
+            jobOrPoLabel.Location = new Point(12, 68);
+            jobOrPoLabel.Name = "jobOrPoLabel";
+            jobOrPoLabel.Size = new Size(37, 15);
+            jobOrPoLabel.TabIndex = 14;
+            jobOrPoLabel.Text = "PoNo";
+            jobOrPoLabel.Visible = false;
+            // 
+            // jobOrPoTextBox
+            // 
+            jobOrPoTextBox.Location = new Point(83, 60);
+            jobOrPoTextBox.Name = "jobOrPoTextBox";
+            jobOrPoTextBox.Size = new Size(100, 23);
+            jobOrPoTextBox.TabIndex = 15;
+            jobOrPoTextBox.Visible = false;
+            jobOrPoTextBox.Enter += PoNoTextBox_Enter;
+            // 
+            // comboBoxMode
+            // 
+            comboBoxMode.FormattingEnabled = true;
+            comboBoxMode.Items.AddRange(new object[] { "Neuware Buchen", "B2B Buchen", "Manual Outbound" });
+            comboBoxMode.Location = new Point(387, 102);
+            comboBoxMode.Name = "comboBoxMode";
+            comboBoxMode.Size = new Size(121, 23);
+            comboBoxMode.TabIndex = 16;
+            comboBoxMode.SelectedIndexChanged += comboBoxMode_SelectedIndexChanged;
+            // 
+            // taskLabel
+            // 
+            taskLabel.AutoSize = true;
+            taskLabel.Location = new Point(296, 106);
+            taskLabel.Name = "taskLabel";
+            taskLabel.Size = new Size(71, 15);
+            taskLabel.TabIndex = 17;
+            taskLabel.Text = "Choose task";
+            // 
+            // CreditcomboBox
+            // 
+            CreditcomboBox.FormattingEnabled = true;
+            CreditcomboBox.Items.AddRange(new object[] { "Full Credit", "Swap" });
+            CreditcomboBox.Location = new Point(74, 146);
+            CreditcomboBox.Name = "CreditcomboBox";
+            CreditcomboBox.Size = new Size(121, 23);
+            CreditcomboBox.TabIndex = 18;
+            CreditcomboBox.Visible = false;
+            CreditcomboBox.SelectedIndexChanged += CreditcomboBox_SelectedIndexChanged;
+            // 
+            // creditLabel
+            // 
+            creditLabel.AutoSize = true;
+            creditLabel.Location = new Point(2, 149);
+            creditLabel.Name = "creditLabel";
+            creditLabel.Size = new Size(66, 15);
+            creditLabel.TabIndex = 19;
+            creditLabel.Text = "Credit Type";
+            creditLabel.Visible = false;
+            // 
+            // stopButton
+            // 
+            stopButton.BackColor = SystemColors.Highlight;
+            stopButton.FlatStyle = FlatStyle.Flat;
+            stopButton.ForeColor = Color.Black;
+            stopButton.Location = new Point(474, 314);
+            stopButton.Name = "stopButton";
+            stopButton.Size = new Size(126, 23);
+            stopButton.TabIndex = 20;
+            stopButton.Text = "stop";
+            stopButton.UseVisualStyleBackColor = false;
+            stopButton.Click += stopButton_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.LightGray;
             ClientSize = new Size(800, 450);
+            Controls.Add(stopButton);
+            Controls.Add(creditLabel);
+            Controls.Add(CreditcomboBox);
+            Controls.Add(taskLabel);
+            Controls.Add(comboBoxMode);
+            Controls.Add(jobOrPoTextBox);
+            Controls.Add(jobOrPoLabel);
             Controls.Add(percentLabel);
             Controls.Add(toolStrip1);
-            Controls.Add(infoLabel);
             Controls.Add(locationTextBox);
             Controls.Add(locationLabel);
             Controls.Add(browseButton);
             Controls.Add(startButton);
             Controls.Add(statusStrip1);
             Controls.Add(progressBar);
-            Controls.Add(excelFilePathTextBox);
+            Controls.Add(excelPathTextBox);
             Controls.Add(password_label);
             Controls.Add(username_label);
             Controls.Add(passwordTextBox);
@@ -264,7 +346,7 @@
         private TextBox passwordTextBox;
         private Label username_label;
         private Label password_label;
-        private TextBox excelFilePathTextBox;
+        private TextBox excelPathTextBox;
         private ProgressBar progressBar;
         private StatusStrip statusStrip1;
         private ToolStripStatusLabel statusLabel;
@@ -273,12 +355,20 @@
         private Label locationLabel;
         private TextBox locationTextBox;
         private ToolStripStatusLabel toolStripStatusLabel1;
-        private Label infoLabel;
-        private ToolTip toolTip1;
+        private ToolTip toolTipExcel;
         private ToolStrip toolStrip1;
         private ToolStripDropDownButton toolStripDropDownButton1;
         private ToolStripMenuItem aboutToolStripMenuItem;
         private ToolStripMenuItem createExcelTemplateToolStripMenuItem;
         private Label percentLabel;
+        private Label jobOrPoLabel;
+        private TextBox jobOrPoTextBox;
+        private ToolTip toolTipLocation;
+        private ToolTip toolTipJobOrPoNo;
+        private ComboBox comboBoxMode;
+        private Label taskLabel;
+        private ComboBox CreditcomboBox;
+        private Label creditLabel;
+        private Button stopButton;
     }
 }
