@@ -113,7 +113,7 @@ namespace BlueIQ_Neuware
             catch (Exception ex)
             {
                 // Handle any issues encountered while trying to delete the file
-                ShowMessage?.Invoke("Error deleting the original file: " + ex.Message);
+                ShowMessage?.Invoke("Error deleting the original Excel file: " + ex.Message);
             }
 
         }
@@ -244,7 +244,7 @@ namespace BlueIQ_Neuware
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine("bad shit");
+                    Global_functions.LogError(Global_functions.GetCallerFunctionName(), "didnt switch to main content or couldnt refresh page after pressing ok to adress");
                 }
 
                 // Continue operations in the order details page
@@ -296,7 +296,6 @@ namespace BlueIQ_Neuware
             try
             {
                 string note = $"Asset ({oldScan}) has been swapped with Asset ({newScan}) and added to Service Order ({newOrder})";
-                Console.WriteLine(note);
 
                 if (!Global_functions.LoadPage(BlueDictionary.LINKS["REPAIR_DETAIL"] + oldScan))
                     throw new Exception($"Failed to load the page for old scan: {oldScan}");

@@ -1,6 +1,6 @@
 using OfficeOpenXml;
-using System.Reflection;
 using System.Globalization;
+using System.Reflection;
 
 namespace BlueIQ_Neuware
 {
@@ -48,61 +48,62 @@ namespace BlueIQ_Neuware
 
         private async void StartButton_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(usernameTextBox.Text) || string.IsNullOrWhiteSpace(passwordTextBox.Text))
-            {
-                MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            // For Neuware Buchen
-            if (mode == "Neuware")
-            {
-                if (string.IsNullOrWhiteSpace(locationTextBox.Text) ||
-                    string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
-                    string.IsNullOrWhiteSpace(excelPathTextBox.Text))
-                {
-                    MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-            }
-            // For B2B Buchen
-            else if (mode == "B2B")
-            {
-                if (string.IsNullOrWhiteSpace(CreditcomboBox.Text) ||
-                    string.IsNullOrWhiteSpace(locationTextBox.Text) ||
-                    string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
-                    string.IsNullOrWhiteSpace(excelPathTextBox.Text))
-                {
-                    MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-            }
-            // For Manual Outbound
-            else if (mode == "Manual_outbound")
-            {
-                if (string.IsNullOrWhiteSpace(excelPathTextBox.Text))
-                {
-                    MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-            }
-            else
-            {
-                MessageBox.Show(Languages.Resources.SELECT_MODE_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            // Update the status label to show "Logging in"
-            UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGING);
-
-            bool loginSuccess = await Task.Run(() =>
-            {
-                if (cancellationTokenSource.Token.IsCancellationRequested)
-                {
-                    return false; // Or an appropriate value to indicate that the task was cancelled
-                }
-                return Global_functions.LoginToSite(excelPathTextBox.Text, usernameTextBox.Text, passwordTextBox.Text);
-            }, cancellationTokenSource.Token);
             try
             {
+                startButton.Enabled = false;
+                if (string.IsNullOrWhiteSpace(usernameTextBox.Text) || string.IsNullOrWhiteSpace(passwordTextBox.Text))
+                {
+                    MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                // For Neuware Buchen
+                if (mode == "Neuware")
+                {
+                    if (string.IsNullOrWhiteSpace(locationTextBox.Text) ||
+                        string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
+                        string.IsNullOrWhiteSpace(excelPathTextBox.Text))
+                    {
+                        MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+                // For B2B Buchen
+                else if (mode == "B2B")
+                {
+                    if (string.IsNullOrWhiteSpace(CreditcomboBox.Text) ||
+                        string.IsNullOrWhiteSpace(locationTextBox.Text) ||
+                        string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
+                        string.IsNullOrWhiteSpace(excelPathTextBox.Text))
+                    {
+                        MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+                // For Manual Outbound
+                else if (mode == "Manual_outbound")
+                {
+                    if (string.IsNullOrWhiteSpace(excelPathTextBox.Text))
+                    {
+                        MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show(Languages.Resources.SELECT_MODE_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                // Update the status label to show "Logging in"
+                UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGING);
+                bool loginSuccess = await Task.Run(() =>
+                {
+                    if (cancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        return false; // Or an appropriate value to indicate that the task was cancelled
+                    }
+                    return Global_functions.LoginToSite(excelPathTextBox.Text, usernameTextBox.Text, passwordTextBox.Text);
+                }, cancellationTokenSource.Token);
+
                 if (loginSuccess)
                 {
                     //ShowMessage("Login successful");
@@ -178,6 +179,7 @@ namespace BlueIQ_Neuware
             {
                 CleanUp();
                 UpdateUI(() => statusLabel.Text = Languages.Resources.PRO_FINISHED);
+                startButton.Enabled = true;
             }
         }
 
@@ -186,9 +188,7 @@ namespace BlueIQ_Neuware
             CleanUp();
             ShowMessage(Languages.Resources.APP_STOPPED);
             UpdateUI(() => statusLabel.Text = Languages.Resources.PROGRAM_STOPPED);
-
         }
-
 
         private void UpdateUI(Action action)
         {
@@ -349,6 +349,8 @@ namespace BlueIQ_Neuware
             usernameTextBox.Text = "";
             passwordTextBox.Text = "";
             excelPathTextBox.Text = "";
+            mode = "";
+            creditType = "";
 
             if (comboBoxMode != null)
                 comboBoxMode.SelectedIndex = -1;

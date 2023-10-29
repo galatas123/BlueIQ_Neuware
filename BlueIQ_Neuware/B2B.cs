@@ -38,11 +38,11 @@ namespace BlueIQ_Neuware
             int counter = 0;
             int progressBarValue = 0;
             int progressBarMaximum = 0;
+            int maxColumn = 3;
             bool newPallet = true;
             Dictionary<string, object> data = new();
 
             var ws = Global_functions.package.Workbook.Worksheets[0]; // Access package from the class level
-            int maxColumn = ws.Dimension.End.Column;
 
             // Find the last row with data
             int rowCount = ws.Cells[ws.Dimension.Address].Rows;
@@ -89,10 +89,7 @@ namespace BlueIQ_Neuware
                     }
                     if ((data["serial"].ToString().Length == 8) && (data["part_number"].ToString().Length == 7))
                     {
-                        if (!AddDevice(data, newPallet, location, creditType, ws, row, maxColumn))
-                        {
-                            ws.Cells[row, maxColumn + 1].Value = "add Device Error";
-                        }
+                        AddDevice(data, newPallet, location, creditType, ws, row, maxColumn);
                     }
                     else
                     {
@@ -106,7 +103,7 @@ namespace BlueIQ_Neuware
                 }
                 catch (Exception ex)
                 {
-                    Global_functions.LogError(nameof(StartBooking), (ex.ToString()));
+                    Global_functions.LogError(Global_functions.GetCallerFunctionName(), (ex.ToString()));
                     continue;
                 }
                 finally
@@ -215,8 +212,8 @@ namespace BlueIQ_Neuware
 
                 if (!Global_functions.TryCloseSecondTab())
                 {
-                    Global_functions.LogError(nameof(AddDevice), "Failed to close the second tab after multiple attempts.");
-                    ws.Cells[row, maxColumn + 1].Value = "Failed to close second tab";
+                    Global_functions.LogError(Global_functions.GetCallerFunctionName(), "Failed to close the second tab after multiple attempts.");
+                    ws.Cells[row, maxColumn + 1].Value = "error check logs";
                     return false;
                 }
                 ws.Cells[row, maxColumn + 1].Value = "Done";
@@ -224,8 +221,8 @@ namespace BlueIQ_Neuware
             }
             catch (Exception ex)
             {
-                Global_functions.LogError(nameof(AddDevice), (ex.ToString()));
-                ws.Cells[row, maxColumn + 1].Value = ex.ToString();
+                Global_functions.LogError(Global_functions.GetCallerFunctionName(), (ex.ToString()));
+                ws.Cells[row, maxColumn + 1].Value = "error check logs";
                 return false;
             }
         }

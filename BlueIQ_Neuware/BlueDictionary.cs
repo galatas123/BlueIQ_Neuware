@@ -26,7 +26,8 @@
             { "PASSWORD", "//*[@id=\"ctl00_MainContent_Login1_Password\"]" },
             { "BUTTON", "//*[@id=\"ctl00_MainContent_Login1_LoginButton\"]" },
             { "LOADING", "//*[@id=\"ctl00_imgWorking\"]" },
-            { "LOGIN_ERROR", "/html/body/form/div[3]/div[4]/div/div/div/div/div[1]/table/tbody/tr/td/div[1]" }
+            { "LOGIN_ERROR", "/html/body/form/div[3]/div[4]/div/div/div/div/div[1]/table/tbody/tr/td/div[1]" },
+            { "LOCATION_POPUP", "//*[@id=\"ctl00_MainContent_ASPxPopupControlErrors_btnSubmit\"]" }
         };
 
         public static readonly Dictionary<string, string> AUDIT_PAGE = new()

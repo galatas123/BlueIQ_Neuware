@@ -12,7 +12,7 @@ namespace BlueIQ_Neuware
         public static IWebDriver? driver;
         public static WebDriverWait? wait;
         public static WebDriverWait? waitAlert;
-        public static OfficeOpenXml.ExcelPackage? package;
+        public static ExcelPackage? package;
 
         // Define a delegate for the event
         public delegate void StatusUpdateHandler(string statusMessage);
@@ -22,6 +22,7 @@ namespace BlueIQ_Neuware
 
         public static bool LoginToSite(string excelFilePath, string username, string password)
         {
+            var customWait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             SetupWebDriver();
             if (!LoadPage(BlueDictionary.LINKS["LOGIN"]))
@@ -29,7 +30,7 @@ namespace BlueIQ_Neuware
 
             try
             {
-                
+
                 package = new ExcelPackage(new FileInfo(excelFilePath));
                 SendKeysToVisibleElement(By.XPath(BlueDictionary.LOGIN_PAGE["USERNAME"]), username);
                 SendKeysToVisibleElement(By.XPath(BlueDictionary.LOGIN_PAGE["PASSWORD"]), password);
@@ -40,8 +41,7 @@ namespace BlueIQ_Neuware
                 try
                 {
                     // Create a separate WebDriverWait instance with a shorter timeout
-                    var customWait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
-
+                    
                     IWebElement errorMessageElem = customWait.Until(ExpectedConditions.PresenceOfAllElementsLocatedBy(By.XPath(BlueDictionary.LOGIN_PAGE["LOGIN_ERROR"])))[0];
                     string errorMessage = errorMessageElem.Text.Trim();
 
@@ -56,12 +56,20 @@ namespace BlueIQ_Neuware
                 }
                 catch (WebDriverTimeoutException)
                 {
-                    return true;
+                    try
+                    {
+                        customWait.Until(ExpectedConditions.ElementToBeClickable(By.XPath(BlueDictionary.LOGIN_PAGE["LOCATION_POPUP"]))).Click();
+                        return true;
+                    }
+                    catch(WebDriverTimeoutException)
+                    {
+                        return true;
+                    }
                 }
             }
             catch (Exception e)
             {
-                LogError(nameof(LoginToSite), (e.ToString()));
+                LogError(GetCallerFunctionName(), (e.ToString()));
                 return false;
             }
         }
@@ -262,7 +270,7 @@ namespace BlueIQ_Neuware
             catch (Exception ex)
             {
                 // Here you can log the exception or take other appropriate actions.
-                LogError(nameof(AddPallet), (ex.ToString()));
+                LogError(GetCallerFunctionName(), (ex.ToString()));
                 return ""; // Return a default value or handle as appropriate.
             }
         }
@@ -280,7 +288,7 @@ namespace BlueIQ_Neuware
             catch (Exception ex)
             {
                 // Maybe log the error or update a label on your form
-                LogError(nameof(AddPallet), (ex.ToString()));
+                LogError(GetCallerFunctionName(), (ex.ToString()));
                 return false;
             }
         }
@@ -301,7 +309,7 @@ namespace BlueIQ_Neuware
                     }
                     catch (Exception ex)
                     {
-                        LogError(nameof(TryCloseSecondTab), (ex.ToString()));
+                        LogError(GetCallerFunctionName(), (ex.ToString()));
                     }
                 }
 
@@ -316,7 +324,7 @@ namespace BlueIQ_Neuware
         {
             string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "errorLog.txt");
             using StreamWriter writer = new(logFilePath, true); // true means appending to the file
-            string logEntry = $"\"{DateTime.Now:O}\", \"{functionName}\", \"Error: {errorMessage}\"";
+            string logEntry = $"\"{DateTime.Now:O}\", \"function: {functionName}\", \"Error: {errorMessage}\"";
             writer.WriteLine(logEntry);
         }
 
@@ -350,10 +358,10 @@ namespace BlueIQ_Neuware
             }
             catch (Exception)
             {
-                LogError(nameof(GetSettings), "Error reading settings file.");
+                LogError(GetCallerFunctionName(), "Error reading settings file.");
                 return "en";
             }
-           
+
         }
 
         public static void UpdateLanguageInSettingsFile(string language)
@@ -366,7 +374,7 @@ namespace BlueIQ_Neuware
                 if (!File.Exists(settingsFilePath))
                 {
                     // If the file doesn't exist, create it with the language parameter
-                    File.WriteAllText(settingsFilePath, $"language={language}"); 
+                    File.WriteAllText(settingsFilePath, $"language={language}");
                     return;
                 }
 
@@ -392,10 +400,10 @@ namespace BlueIQ_Neuware
             }
             catch (Exception)
             {
-                LogError(nameof(UpdateLanguageInSettingsFile), "Error updating settings file."); 
+                LogError(GetCallerFunctionName(), "Error updating settings file.");
                 return;
             }
-           
+
         }
 
 
