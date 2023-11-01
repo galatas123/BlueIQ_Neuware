@@ -21,10 +21,10 @@ namespace BlueIQ_Neuware
         public static event StatusUpdateHandler? StatusUpdated;
 
         public static bool LoginToSite(string excelFilePath, string username, string password)
-        {
+        { 
+            SetupWebDriver();
             var customWait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            SetupWebDriver();
             if (!LoadPage(BlueDictionary.LINKS["LOGIN"]))
                 return false;
 
@@ -84,7 +84,7 @@ namespace BlueIQ_Neuware
 
             driver = new FirefoxDriver(service);
             wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-            waitAlert = new WebDriverWait(driver, TimeSpan.FromSeconds(20));
+            waitAlert = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
         }
 
         public static void CloseDriver()
@@ -217,13 +217,14 @@ namespace BlueIQ_Neuware
                 const string AUDIO = "Audio";
                 const string MISC = "Miscellaneous";
                 const string SORT = "SORT";
-                string totalweight = totaldevices.ToString() + "30";
+                string totalweight = (totaldevices + 30).ToString() ;
 
                 DateTime today = DateTime.Now;
                 string formattedDate = today.ToString("dd/MM/yyyy");
                 string formattedTime = today.ToString("hh:mm tt");
-
+ 
                 driver.Navigate().GoToUrl(BlueDictionary.LINKS["RECEIVING"]);
+                
                 if (load)
                 {
                     SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["LOAD_ID"]), referenceNumber);
@@ -241,9 +242,10 @@ namespace BlueIQ_Neuware
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["QTY_PALLET"]), "1");
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["DATE"]), formattedDate);
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["ARRIVAL_TIME"]), formattedTime);
-
-                ClickElement(By.XPath(BlueDictionary.RECEIVING_PAGE["SAVE&EXIT"]));
+                ClickElement(By.XPath(BlueDictionary.RECEIVING_PAGE["SAVE&EXIT"]), false);
+                System.Threading.Thread.Sleep(500);
                 HandleAlert();
+                System.Threading.Thread.Sleep(500);
 
                 var pallet = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.RECEIVING_PAGE["PALLET_ID"])));
                 string pallet_id = pallet.Text;
@@ -263,7 +265,6 @@ namespace BlueIQ_Neuware
                 ClickElement(By.XPath(BlueDictionary.RECEIVING_PAGE["SAVE"]));
 
                 driver.SwitchTo().DefaultContent();
-                System.Environment.Exit(0);
 
                 return pallet_id;
             }
@@ -293,7 +294,7 @@ namespace BlueIQ_Neuware
             }
         }
 
-        public static bool TryCloseSecondTab(int retries = 3)
+        public static bool TryCloseSecondTab(int retries = 5)
         {
             for (int i = 0; i < retries; i++)
             {

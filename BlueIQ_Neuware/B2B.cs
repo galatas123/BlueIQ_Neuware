@@ -47,6 +47,7 @@ namespace BlueIQ_Neuware
             // Find the last row with data
             int rowCount = ws.Cells[ws.Dimension.Address].Rows;
             string pallet_id = Global_functions.CreateJob(jobID, rowCount - 1, location);
+            //string pallet_id = "3537370";
             if (pallet_id == "")
                 throw new Exception("Failed to create job");
             SetMaxProgress?.Invoke(rowCount - 1); // Deducting 2 as you're starting from the second row and excluding the header row.
@@ -156,8 +157,6 @@ namespace BlueIQ_Neuware
 
                 Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"]?.ToString());
                 Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
-                System.Threading.Thread.Sleep(500);
-
                 try
                 {
                     Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString());
