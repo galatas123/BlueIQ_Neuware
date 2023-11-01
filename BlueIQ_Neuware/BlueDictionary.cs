@@ -37,6 +37,8 @@
             { "UPDATE_COMP", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkUpdate\"]" },
             { "LOCK_PALLET", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_chkLockPallet\"]" },
             { "PART_NUMBER", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_ddlPartNumberSerialized_I\"]" },
+            { "PART_NUMBER_BTN", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_ddlPartNumberSerialized_B-1\"]" },
+            { "PART_TABLE", "ctl00_ctl00_MainContent_PageMainContent_ddlPartNumberSerialized_DDD_L_LBI" },
             { "SERIAL#", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtSerialNumber_I\"]" },
             { "ASSET", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtAssetNumber\"]" },
             { "WEIGHT", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtWeight\"]" },
