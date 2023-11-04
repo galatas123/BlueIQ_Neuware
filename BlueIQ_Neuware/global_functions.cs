@@ -139,15 +139,28 @@ namespace BlueIQ_Neuware
 
         public static string HandleAlert()
         {
-            IAlert alert = waitAlert.Until(ExpectedConditions.AlertIsPresent());
-
-            // Retrieve the alert's message.
-            string alertMessage = alert.Text;
-
-            // Accept the alert.
-            alert.Accept();
-            return alertMessage;
+            try
+            {
+                // Wait for the alert to be present.
+                IAlert alert = waitAlert.Until(ExpectedConditions.AlertIsPresent());
+                // Retrieve the alert's message.
+                string alertMessage = alert.Text;
+                LogError(GetCallerFunctionName(), alertMessage);
+                // Accept the alert.
+                alert.Accept();
+                WaitForLoadingToDisappear();
+                return alertMessage;
+            }
+            catch (WebDriverTimeoutException)
+            {
+                return "";
+            }
+            catch (NoAlertPresentException)
+            {
+                return "";
+            }
         }
+
 
         public static void SendKeysToVisibleElement(By by, string? text)
         {
@@ -210,7 +223,50 @@ namespace BlueIQ_Neuware
             }
         }
 
-        public static string CreateJob(string referenceNumber, int totaldevices, string location, bool load = false)
+
+        public static void SelectDropdownByVisibleText(By by, string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                throw new Exception(GetCallerFunctionName() + "Text provided is null or whitespace.");
+            }
+
+            try
+            {
+                System.Threading.Thread.Sleep(250);
+                var selectElement = new SelectElement(wait.Until(ExpectedConditions.ElementToBeClickable(by)));
+                selectElement.SelectByText(text);
+                WaitForLoadingToDisappear();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public static void CheckAllInGridView()
+        {
+            try
+            {
+                // Wait for the JavaScript and AJAX calls to complete
+                new WebDriverWait(driver, TimeSpan.FromSeconds(10)).Until(
+                    d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete")
+                );
+
+                // Execute the JavaScript function that checks all checkboxes in the DevExpress GridView
+                ((IJavaScriptExecutor)driver).ExecuteScript(
+                    "window['ctl00_ctl00_MainContent_PageMainContent_gvQuarantineAssets_header0_SelectAllCheckBox'].SetChecked(true); " +
+                    "gvQuarantineAssets.SelectAllRowsOnPage(true);"
+                );
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+
+        public static void CreateJob(int totaldevices, bool load = false)
         {
             try
             {
@@ -221,21 +277,19 @@ namespace BlueIQ_Neuware
 
                 DateTime today = DateTime.Now;
                 string formattedDate = today.ToString("dd/MM/yyyy");
-                string formattedTime = today.ToString("hh:mm tt");
- 
+                string formattedTime = today.ToString("hh:mm tt", new System.Globalization.CultureInfo("en-US"));
                 driver.Navigate().GoToUrl(BlueDictionary.LINKS["RECEIVING"]);
                 
                 if (load)
                 {
-                    SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["LOAD_ID"]), referenceNumber);
-                    SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["LOAD_ID"]), OpenQA.Selenium.Keys.Tab);
+                    SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["PONO"]), JobInfo.Current.JobOrPoNO);
+                    SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["PONO"]), OpenQA.Selenium.Keys.Tab);
                 }
                 else
                 {
-                    SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["JOB_ID"]), referenceNumber);
+                    SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["JOB_ID"]), JobInfo.Current.JobOrPoNO);
                     SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["JOB_ID"]), OpenQA.Selenium.Keys.Tab);
                 }
-
                 ClickElement(By.XPath(BlueDictionary.RECEIVING_PAGE["OTHER"]));
 
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["BOL"]), "NA");
@@ -247,8 +301,8 @@ namespace BlueIQ_Neuware
                 HandleAlert();
                 System.Threading.Thread.Sleep(500);
 
-                var pallet = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.RECEIVING_PAGE["PALLET_ID"])));
-                string pallet_id = pallet.Text;
+                JobInfo.Current.PalletId = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.RECEIVING_PAGE["PALLET_ID"]))).Text;
+                JobInfo.Current.LoadId = wait.Until(ExpectedConditions.ElementIsVisible(By.Id(BlueDictionary.RECEIVING_PAGE["LOAD_ID"]))).Text;
                 ClickElement(By.XPath(BlueDictionary.RECEIVING_PAGE["PENCIL"]));
 
                 driver.SwitchTo().Frame("ctl00_ctl00_MainContent_PageMainContent_ASPxPopupControlEditPallet_CIF-1");
@@ -256,33 +310,31 @@ namespace BlueIQ_Neuware
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["WEIGHT"]), totalweight);
                 ClickElement(By.XPath(BlueDictionary.RECEIVING_PAGE["DUNNAGE_PALLET"]));
 
-                new SelectElement(wait.Until(ExpectedConditions.ElementToBeClickable(By.Id("ddlClass")))).SelectByText(AUDIO);
-                new SelectElement(wait.Until(ExpectedConditions.ElementToBeClickable(By.Id("ddlCategory")))).SelectByText(MISC);
+                SelectDropdownByVisibleText(By.Id("ddlClass"), AUDIO);
+                SelectDropdownByVisibleText(By.Id("ddlCategory"), MISC);
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["QTY_DEVICES"]), totaldevices.ToString());
-                new SelectElement(wait.Until(ExpectedConditions.ElementToBeClickable(By.Id("ddlMoveToSite")))).SelectByText(SORT);
+                SelectDropdownByVisibleText(By.Id("ddlMoveToSite"), SORT);
 
-                SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["LOCATION"]), location, true);
+                SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["LOCATION"]), JobInfo.Current.Location, true);
                 ClickElement(By.XPath(BlueDictionary.RECEIVING_PAGE["SAVE"]));
 
                 driver.SwitchTo().DefaultContent();
-
-                return pallet_id;
             }
             catch (Exception ex)
             {
                 // Here you can log the exception or take other appropriate actions.
                 LogError(GetCallerFunctionName(), (ex.ToString()));
-                return ""; // Return a default value or handle as appropriate.
             }
         }
 
-        public static bool AddPallet(string pallet)
+        public static bool AddPallet()
         {
             try
             {
                 StatusUpdated.Invoke("Adding Pallet");
-                driver.Navigate().GoToUrl(BlueDictionary.LINKS["AUDIT"]); // Replace with your actual URL
-                SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["PALLET_ID"]), pallet);
+                if (!LoadPage(BlueDictionary.LINKS["AUDIT"]))
+                    return false;
+                SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["PALLET_ID"]), JobInfo.Current.PalletId);
                 ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCK_PALLET"]));
                 return true;
             }
@@ -293,6 +345,76 @@ namespace BlueIQ_Neuware
                 return false;
             }
         }
+
+        public static bool RemoveFromQuarantine()
+        {
+            try
+            {
+                if (!LoadPage(BlueDictionary.LINKS["QUARANTINE"]))
+                {
+                    return false;
+                }
+
+                SendKeysToVisibleElement(By.Id(BlueDictionary.QUARANTINE_PAGE["JOB#"]), JobInfo.Current.JobOrPoNO);
+                Thread.Sleep(2000);
+                ClickElement(By.Id(BlueDictionary.QUARANTINE_PAGE["SEARCH_BTN"]), false);
+                Thread.Sleep(2000);
+                string alertText = "";
+                while (!alertText.Contains("Select at least one asset."))
+                {
+                    CheckAllInGridView();
+                    ClickElement(By.Id(BlueDictionary.QUARANTINE_PAGE["RELEASE_BTN"]), false);
+                    alertText = HandleAlert();
+                    if (alertText.Contains("Select at least one asset."))
+                    {
+                        break;
+                    }
+                    WaitForLoadingToDisappear();
+                    SendKeysToElement(By.Id(BlueDictionary.QUARANTINE_PAGE["RELEASE_REASON"]), JobInfo.Current.Mode);
+                    Thread.Sleep(1000);
+                    ClickElement(By.Id(BlueDictionary.QUARANTINE_PAGE["RELEASE_YES"]), false);
+                    Thread.Sleep(1000);
+                    alertText = HandleAlert(); // You need to define HandleAlert method
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogError(GetCallerFunctionName(), (ex.ToString()));
+                throw;
+            }
+        }
+
+        public static bool MassMove()
+        {
+            try
+            {
+                if (!LoadPage(BlueDictionary.LINKS["MASS_MOVE"]))
+                {
+                    return false;
+                }
+
+                SelectDropdownByVisibleText(By.Id(BlueDictionary.MASS_MOVE_PAGE["FROM_SITE_SEL"]), "SORT");
+                SendKeysToElement(By.Id(BlueDictionary.MASS_MOVE_PAGE["FROM_LOCATION"]), JobInfo.Current.Location);
+                SelectDropdownByVisibleText(By.Id(BlueDictionary.MASS_MOVE_PAGE["TO_SITE_SEL"]), "FG(QUARANTINE)");
+                SendKeysToElement(By.Id(BlueDictionary.MASS_MOVE_PAGE["TO_LOCATION"]), BlueDictionary.LOCATIONS["QUARANTINE"]);
+                ClickElement(By.Id(BlueDictionary.MASS_MOVE_PAGE["MOVE_BTN"]));
+                ClickElement(By.Id(BlueDictionary.MASS_MOVE_PAGE["SUBMIT"]));
+                ClickElement(By.Id(BlueDictionary.MASS_MOVE_PAGE["QUAR_REASON_SEL"]));
+                ClickElement(By.Id(BlueDictionary.MASS_MOVE_PAGE["QUAR_REASON_OTHER"]));
+                SendKeysToElement(By.Id(BlueDictionary.MASS_MOVE_PAGE["QUAR_COMMENT"]), JobInfo.Current.Mode);
+                ClickElement(By.Id(BlueDictionary.MASS_MOVE_PAGE["MOVE_BTN_POP"]));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogError(GetCallerFunctionName(), (ex.ToString()));
+                throw;
+            }
+        }
+
+
 
         public static bool TryCloseSecondTab(int retries = 5)
         {

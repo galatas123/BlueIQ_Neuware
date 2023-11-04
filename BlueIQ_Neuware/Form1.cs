@@ -6,8 +6,6 @@ namespace BlueIQ_Neuware
 {
     public partial class Form1 : Form
     {
-        private string mode = "";
-        private string creditType = "";
         private CancellationTokenSource cancellationTokenSource = new();
 
         public Form1()
@@ -57,7 +55,7 @@ namespace BlueIQ_Neuware
                     return;
                 }
                 // For Neuware Buchen
-                if (mode == "Neuware")
+                if (JobInfo.Current.Mode == "Neuware")
                 {
                     if (string.IsNullOrWhiteSpace(locationTextBox.Text) ||
                         string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
@@ -68,7 +66,7 @@ namespace BlueIQ_Neuware
                     }
                 }
                 // For B2B Buchen
-                else if (mode == "B2B")
+                else if (JobInfo.Current.Mode == "B2B")
                 {
                     if (string.IsNullOrWhiteSpace(CreditcomboBox.Text) ||
                         string.IsNullOrWhiteSpace(locationTextBox.Text) ||
@@ -80,7 +78,7 @@ namespace BlueIQ_Neuware
                     }
                 }
                 // For Manual Outbound
-                else if (mode == "Manual_outbound")
+                else if (JobInfo.Current.Mode == "Manual_outbound")
                 {
                     if (string.IsNullOrWhiteSpace(excelPathTextBox.Text))
                     {
@@ -93,6 +91,10 @@ namespace BlueIQ_Neuware
                     MessageBox.Show(Languages.Resources.SELECT_MODE_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
+                //update variables
+                JobInfo.Current.Location = locationTextBox.Text;
+                JobInfo.Current.JobOrPoNO = jobOrPoTextBox.Text;
+
                 // Update the status label to show "Logging in"
                 UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGING);
                 bool loginSuccess = await Task.Run(() =>
@@ -110,7 +112,7 @@ namespace BlueIQ_Neuware
                     UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGED);
                     try
                     {
-                        switch (mode)
+                        switch (JobInfo.Current.Mode)
                         {
                             case "Neuware":
                                 await Task.Run(() =>
@@ -119,7 +121,7 @@ namespace BlueIQ_Neuware
                                     {
                                         return; // Exit if cancellation was requested
                                     }
-                                    Neuware.Start_neuware(locationTextBox.Text, jobOrPoTextBox.Text, cancellationTokenSource.Token);
+                                    Neuware.Start_neuware(cancellationTokenSource.Token);
                                 });
                                 break;
 
@@ -130,7 +132,7 @@ namespace BlueIQ_Neuware
                                     {
                                         return; // Exit if cancellation was requested
                                     }
-                                    B2B.Start_b2b(locationTextBox.Text, jobOrPoTextBox.Text, creditType, cancellationTokenSource.Token);
+                                    B2B.Start_b2b(cancellationTokenSource.Token);
                                 });
                                 break;
 
@@ -349,8 +351,8 @@ namespace BlueIQ_Neuware
             usernameTextBox.Text = "";
             passwordTextBox.Text = "";
             excelPathTextBox.Text = "";
-            mode = "";
-            creditType = "";
+            JobInfo.Current.Mode = "";
+            JobInfo.Current.CreditType = "";
 
             if (comboBoxMode != null)
                 comboBoxMode.SelectedIndex = -1;
@@ -385,7 +387,7 @@ namespace BlueIQ_Neuware
 
         private void ExcelFilePathTextBox_Enter(object sender, EventArgs e)
         {
-            if (mode == "Manual_outbound")
+            if (JobInfo.Current.Mode == "Manual_outbound")
                 toolTipExcel.Show(Languages.Resources.EXCEL_FILE_TIP2, excelPathTextBox);
             else
                 toolTipExcel.Show(Languages.Resources.EXCEL_FILE_TIP1, excelPathTextBox);
@@ -398,7 +400,7 @@ namespace BlueIQ_Neuware
             var ws = excel.Workbook.Worksheets.Add("Neuware");
 
             // Headers
-            if (mode == "Manual_outbound")
+            if (JobInfo.Current.Mode == "Manual_outbound")
             {
                 ws.Cells["A1"].Value = "Old ScanID";
                 ws.Cells["B1"].Value = "New Serial";
@@ -425,7 +427,7 @@ namespace BlueIQ_Neuware
 
             SaveFileDialog saveFileDialog = new()
             {
-                FileName = "template_" + mode,
+                FileName = "template_" + JobInfo.Current.Mode,
                 DefaultExt = ".xlsx"
             };
             if (saveFileDialog.ShowDialog() == DialogResult.OK)
@@ -452,7 +454,7 @@ namespace BlueIQ_Neuware
             switch (selectedMode)
             {
                 case "Neuware Buchen":
-                    mode = "Neuware";
+                    JobInfo.Current.Mode = "Neuware";
                     locationLabel.Visible = true;
                     locationTextBox.Visible = true;
                     jobOrPoLabel.Text = "PoNo";
@@ -463,7 +465,7 @@ namespace BlueIQ_Neuware
                     break;
 
                 case "B2B Buchen":
-                    mode = "B2B";
+                    JobInfo.Current.Mode = "B2B";
                     locationLabel.Visible = true;
                     locationTextBox.Visible = true;
                     jobOrPoLabel.Text = "Job ID";
@@ -476,7 +478,7 @@ namespace BlueIQ_Neuware
                     break;
 
                 case "Manual Outbound":
-                    mode = "Manual_outbound";
+                    JobInfo.Current.Mode = "Manual_outbound";
                     browseButton.Visible = true;
                     excelPathTextBox.Visible = true;
                     break;
@@ -489,13 +491,29 @@ namespace BlueIQ_Neuware
             switch (selectedMode)
             {
                 case "Full Credit":
-                    creditType = "Full Credit";
+                    JobInfo.Current.CreditType = "Full Credit";
                     break;
 
                 case "Swap":
-                    creditType = "Swap";
+                    JobInfo.Current.CreditType = "Swap";
                     break;
             }
         }
     }
+
+    public static class JobInfo
+    {
+        public static JobDetails Current { get; set; } = new JobDetails();
+
+        public class JobDetails
+        {
+            public string? PalletId { get; set; }
+            public string? LoadId { get; set; }
+            public string? JobOrPoNO { get; set; }
+            public string? Location { get; set; }
+            public string? CreditType { get; set; }
+            public string? Mode { get; set; }
+        }
+    }
+
 }

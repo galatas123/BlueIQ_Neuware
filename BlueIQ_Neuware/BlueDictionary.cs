@@ -1,4 +1,7 @@
-﻿namespace BlueIQ_Neuware
+﻿using System.Collections.ObjectModel;
+using System.Security;
+
+namespace BlueIQ_Neuware
 {
     internal class BlueDictionary
     {
@@ -128,10 +131,11 @@
         public static readonly Dictionary<string, string> RECEIVING_PAGE = new()
         {
             { "JOB_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtJobID\"]" },
-            { "LOAD_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lblCurrentLoadID\"]" },
+            { "PONO", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lblCurrentLoadID\"]" },
             { "SEARCH_JOB", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtJobID\"]" },
             { "SEARCH_BTN", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkShowJobs\"]" },
             { "PALLET_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvLoadPallet_ctl02_lblPallet\"]" },
+            { "LOAD_ID", "ctl00_ctl00_MainContent_PageMainContent_lblCurrentLoadID" }, //ID
             { "OTHER", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div[1]/div[1]/div[2]/div[2]/div/div/div[1]/div[2]/select/option[6]" },
             { "LOADING", "//*[@id=\"ctl00_ctl00_UpdateProgress1\"]" },
             { "BOL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtBOL\"]" },
@@ -142,13 +146,12 @@
             { "PENCIL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvLoadPallet_ctl02_imgEdit\"]" },
             { "WEIGHT", "//*[@id=\"txtWeight\"]" },
             { "DUNNAGE_PALLET", "/html/body/form/div[4]/div/div[2]/div[1]/div[2]/div[2]/select/option[2]" },
-            { "AUDIO", "/html/body/form/div[4]/div/div[3]/div[1]/div[2]/table/tbody/tr[2]/td[2]/select/option[4]" },
-            { "MISCELLANEOUS", "/html/body/form/div[4]/div/div[3]/div[1]/div[2]/table/tbody/tr[2]/td[5]/select/option[13]" },
+            { "AUDIO", "ddlClass" }, //ID
+            { "MISCELLANEOUS", "ddlCategory" }, //ID
             { "QTY_DEVICES", "//*[@id=\"txtQuantity\"]" },
-            { "SORT", "/html/body/form/div[4]/div/div[2]/div[2]/div[2]/div[2]/select/option[3]" },
+            { "SORT", "ddlMoveToSite" }, //ID
             { "LOCATION", "//*[@id=\"txtMoveToLocation\"]" },
             { "SAVE", "/html/body/form/div[4]/div/div[1]/div[2]/div[2]/div[3]/div/a/img" },
-            //{ "SAVE", "//*[@id=\"btnSave\"]" },
             { "PRINT", "//*[@id=\"btnPrint\"]" }
         };
 
@@ -157,5 +160,39 @@
             { "ATTACHMENT", "//*[@id=\"__tab_ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabAttachments\"]" },
             { "DOCUMENT", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabAttachments_ucDocuments_gvDocumentsList_ctl02_lnk_downloadDocument\"]" }
         };
+
+        //all by id from here on
+
+        public static readonly Dictionary<string, string> MASS_MOVE_PAGE = new()
+        {
+            { "FROM_LOCATION", "ctl00_ctl00_MainContent_PageMainContent_txtFromLocation" },
+            { "TO_LOCATION", "ctl00_ctl00_MainContent_PageMainContent_txtMoveToLocation" },
+            { "FROM_SITE_SEL", "ctl00_ctl00_MainContent_PageMainContent_ddlFromSite" },
+            { "TO_SITE_SEL", "ctl00_ctl00_MainContent_PageMainContent_ddlMoveToSite" },
+            { "MOVE_BTN", "ctl00_ctl00_MainContent_PageMainContent_btnMove" },
+            { "SUBMIT", "ctl00_ctl00_MainContent_PageMainContent_btnOk" },
+            { "QUAR_REASON_SEL", "ctl00_ctl00_MainContent_PageMainContent_popupQuarantine_ASPxPanel2_ddlQuarentineReason_B-1Img" },
+            { "QUAR_REASON_OTHER", "ctl00_ctl00_MainContent_PageMainContent_popupQuarantine_ASPxPanel2_ddlQuarentineReason_DDD_L_LBI23T0" },
+            { "QUAR_COMMENT", "ctl00_ctl00_MainContent_PageMainContent_popupQuarantine_ASPxPanel2_txtQuarantineReason_I" },
+            { "MOVE_BTN_POP", "ctl00_ctl00_MainContent_PageMainContent_popupQuarantine_ASPxPanel2_btnQuarantineReason_CD" },
+            { "LOADING", "ctl00_ctl00_imgWorking" }
+        };
+
+        public static readonly Dictionary<string, string> QUARANTINE_PAGE = new()
+        {
+            { "JOB#", "ctl00_ctl00_MainContent_PageMainContent_txtjob" },
+            { "SEARCH_BTN", "ctl00_ctl00_MainContent_PageMainContent_btnSearch" },
+            { "DATA_ROW_1", "ctl00_ctl00_MainContent_PageMainContent_gvQuarantineAssets_DXDataRow0" },
+            { "SELECT_ALL", "ctl00_ctl00_MainContent_PageMainContent_gvQuarantineAssets_header0_SelectAllCheckBox_S" },
+            { "RELEASE_BTN", "ctl00_ctl00_MainContent_PageMainContent_btnReleaseQassets" },
+            { "RELEASE_REASON", "ctl00_ctl00_MainContent_PageMainContent_popupRelease_ASPxPanel2_txtQuarantineReason_I" },
+            { "RELEASE_YES", "ctl00_ctl00_MainContent_PageMainContent_popupRelease_ASPxPanel2_btnReleaseYes" }
+        };
+
+        public static readonly Dictionary<string, string> LOCATIONS = new()
+        {
+            {"QUARANTINE", "L1-68.01" }
+        };
+
     }
 }

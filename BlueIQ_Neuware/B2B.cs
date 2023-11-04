@@ -17,7 +17,7 @@ namespace BlueIQ_Neuware
         public static event SetMaxProgressHandler? SetMaxProgress;
         public static event MessageHandler? ShowMessage;
 
-        public static void Start_b2b(string location, string jobID, string creditType, CancellationToken cancellationToken)
+        public static void Start_b2b(CancellationToken cancellationToken)
         {
             // Inside the method, you can periodically check if cancellation has been requested
             if (cancellationToken.IsCancellationRequested)
@@ -30,12 +30,13 @@ namespace BlueIQ_Neuware
                 throw new InvalidOperationException("WebDriver or WebDriverWait not initialized.");
             }
 
-            StartBooking(location, jobID, creditType);
+            StartBooking();
+            Global_functions.MassMove();
+            Global_functions.RemoveFromQuarantine();
         }
 
-        private static void StartBooking(string location, string jobID, string creditType)
+        private static void StartBooking()
         {
-            int counter = 0;
             int progressBarValue = 0;
             int progressBarMaximum = 0;
             int maxColumn = 3;
@@ -45,59 +46,49 @@ namespace BlueIQ_Neuware
             var ws = Global_functions.package.Workbook.Worksheets[0]; // Access package from the class level
 
             // Find the last row with data
-            int rowCount = ws.Cells[ws.Dimension.Address].Rows;
-            string pallet_id = Global_functions.CreateJob(jobID, rowCount - 1, location);
-            //string pallet_id = "3537370";
-            if (pallet_id == "")
+            int rowCount = ws.Cells[ws.Dimension.Address].Rows - 1;
+            Global_functions.CreateJob(rowCount, false);
+            if (JobInfo.Current.PalletId == "")
                 throw new Exception("Failed to create job");
-            SetMaxProgress?.Invoke(rowCount - 1); // Deducting 2 as you're starting from the second row and excluding the header row.
-            progressBarMaximum = rowCount - 1;
+            SetMaxProgress?.Invoke(rowCount);
+            progressBarMaximum = rowCount;
             ProgressUpdated?.Invoke(0); // Reset the progress bar at the start.
-
-            for (int row = 2; row <= rowCount; row++)
+            for (int row = 2; row <= (rowCount+1); row++)
             {
                 // Check if the row is empty (assuming column 2 is the part number column)
-                if (string.IsNullOrEmpty(ws.Cells[row, 2].Text))
+                if (string.IsNullOrEmpty(ws.Cells[row, 1].Text))
                 {
-                    // Skip empty rows
                     continue;
                 }
 
                 StatusUpdated?.Invoke(Languages.Resources.BOOK_NEXT);
                 data["part_number"] = ws.Cells[row, 2].Text;
                 data["serial"] = ws.Cells[row, 1].Text;
-
-                if (counter < 2)
-                {
-                    // For debugging purposes
-                    ShowMessage?.Invoke($"Part Number: {data["part_number"]}, Serial: {data["serial"]}, Pallet: {pallet_id}, JobID: {jobID}");
-                    DialogResult result = MessageBox.Show("Want to continue?", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
-                    if (result == DialogResult.No)
-                    {
-                        return; // Exit the function if the user chooses "No"
-                    }
-                }
-
                 try
                 {
                     if (newPallet)
                     {
-                        if (!Global_functions.AddPallet(pallet_id))
+                        if (!Global_functions.AddPallet())
                         {
-                            ws.Cells[row, maxColumn + 1].Value = "Pallet Error";
+                            ws.Cells[row, maxColumn].Value = "Pallet Error";
                             continue;
                         }
                     }
                     if ((data["serial"].ToString().Length == 8) && (data["part_number"].ToString().Length == 7))
                     {
-                        AddDevice(data, newPallet, location, creditType, ws, row, maxColumn);
+                        if (!AddDevice(data, newPallet, ws, row, maxColumn))
+                        {
+                            Global_functions.driver.Navigate().Refresh();
+                            newPallet = true;
+                            continue;
+                        }
                     }
                     else
                     {
                         if (data["serial"].ToString().Length == 8)
-                            ws.Cells[row, maxColumn + 1].Value = "Serial not 8 digits long";
+                            ws.Cells[row, maxColumn].Value = "Serial not 8 digits long";
                         else if (data["separt_numberrial"].ToString().Length == 7)
-                            ws.Cells[row, maxColumn + 1].Value = "part number not 7 digits long";
+                            ws.Cells[row, maxColumn].Value = "part number not 7 digits long";
                         continue;
                     }
                     newPallet = false;
@@ -109,12 +100,7 @@ namespace BlueIQ_Neuware
                 }
                 finally
                 {
-                    if (counter < 2)
-                    {
-                        ShowMessage?.Invoke($"Data Processed: {string.Join(", ", data.Values)}");
-                        counter++;
-                    }
-                    if (progressBarValue < 100)
+                    if (progressBarValue < rowCount + 1)
                     {
                         progressBarValue++;
                         int percentage = (int)(((double)progressBarValue / (double)progressBarMaximum) * 100);
@@ -126,7 +112,7 @@ namespace BlueIQ_Neuware
             Global_functions.package.Save();
         }
 
-        private static bool AddDevice(Dictionary<string, object> data, bool newPallet, string location, string creditType, ExcelWorksheet ws, int row, int maxColumn)
+        private static bool AddDevice(Dictionary<string, object> data, bool newPallet, ExcelWorksheet ws, int row, int maxColumn)
         {
             try
             {
@@ -159,28 +145,28 @@ namespace BlueIQ_Neuware
                 Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
                 try
                 {
-                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString());
+                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString(), true);
                 }
                 catch (Exception)
                 {
                     Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"]?.ToString());
                     Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
                     System.Threading.Thread.Sleep(500);
-                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString());
+                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString(), true);
                 }
 
-                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["ASSET"]), BlueDictionary.ASSET.ToString());
-                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["WEIGHT"]), BlueDictionary.WEIGHT.ToString());
+                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["ASSET"]), BlueDictionary.ASSET.ToString(), true);
+                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["WEIGHT"]), BlueDictionary.WEIGHT.ToString(), true);
 
                 if (newPallet)
                 {
-                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCATION"]), location);
+                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCATION"]), JobInfo.Current.Location);
                     Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCK_LOCATION"]));
                 }
 
                 Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["WARRANTY"]));
                 //Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["NEW_IN_BOX"]));
-                if (creditType == "Full Credit")
+                if (JobInfo.Current.CreditType == "Full Credit")
                 {
                     Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERVICE_TYPE_CREDIT"]));
                     Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["APPROVED"]));
@@ -198,7 +184,7 @@ namespace BlueIQ_Neuware
                 {
                     string alertMessage = Global_functions.HandleAlert();
                     // Update the Excel file with the alert message.
-                    ws.Cells[row, maxColumn + 1].Value = alertMessage;
+                    ws.Cells[row, maxColumn].Value = alertMessage;
 
                     return false;
                 }
@@ -212,16 +198,16 @@ namespace BlueIQ_Neuware
                 if (!Global_functions.TryCloseSecondTab())
                 {
                     Global_functions.LogError(Global_functions.GetCallerFunctionName(), "Failed to close the second tab after multiple attempts.");
-                    ws.Cells[row, maxColumn + 1].Value = "error check logs";
+                    ws.Cells[row, maxColumn].Value = "error check logs";
                     return false;
                 }
-                ws.Cells[row, maxColumn + 1].Value = "Done";
+                ws.Cells[row, maxColumn].Value = "Done";
                 return true;
             }
             catch (Exception ex)
             {
                 Global_functions.LogError(Global_functions.GetCallerFunctionName(), (ex.ToString()));
-                ws.Cells[row, maxColumn + 1].Value = "error check logs";
+                ws.Cells[row, maxColumn].Value = "error check logs";
                 return false;
             }
         }
