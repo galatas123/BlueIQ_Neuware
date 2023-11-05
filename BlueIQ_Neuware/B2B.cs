@@ -10,12 +10,14 @@ namespace BlueIQ_Neuware
         public delegate void StatusUpdateHandler(string statusMessage);
         public delegate void SetMaxProgressHandler(int maxValue);
         public delegate void MessageHandler(string message);
+        public delegate bool MessageHandlerYesNo(string message);
 
         // Define the event using the delegate
         public static event ProgressUpdateHandler? ProgressUpdated;
         public static event StatusUpdateHandler? StatusUpdated;
         public static event SetMaxProgressHandler? SetMaxProgress;
         public static event MessageHandler? ShowMessage;
+        public static event MessageHandlerYesNo? ShowMessageYesNo;
 
         public static void Start_b2b(CancellationToken cancellationToken)
         {
@@ -31,9 +33,13 @@ namespace BlueIQ_Neuware
             }
 
             StartBooking();
-            Global_functions.MassMove();
-            Global_functions.RemoveFromQuarantine();
-            Global_functions.UpdateToProcessingCompleted();
+
+            if(ShowMessageYesNo.Invoke("Devices Are booked. Check the pallet report and press yes to continue for Processing completed. Else press no to exit"))
+            {
+                Global_functions.MassMove();
+                Global_functions.RemoveFromQuarantine();
+                Global_functions.UpdateToProcessingCompleted();
+            }    
         }
 
         private static void StartBooking()

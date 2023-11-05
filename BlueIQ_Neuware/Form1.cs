@@ -19,6 +19,7 @@ namespace BlueIQ_Neuware
             B2B.StatusUpdated += UpdateUI_statusLabel;
             B2B.SetMaxProgress += UpdateUI_SetMaxProgressBar;
             B2B.ShowMessage += ShowMessage;
+            B2B.ShowMessageYesNo += ShowYesNoMessage;
             Manual_outbound.ProgressUpdated += UpdateUI_progressBar;
             Manual_outbound.StatusUpdated += UpdateUI_statusLabel;
             Manual_outbound.SetMaxProgress += UpdateUI_SetMaxProgressBar;
@@ -28,7 +29,7 @@ namespace BlueIQ_Neuware
             this.FormClosing += MainForm_FormClosing;
             SetLanguage(Global_functions.GetSettings());
         }
-
+        /*
         private async void StartButton_Click(object sender, EventArgs e)
         {
             try
@@ -169,6 +170,110 @@ namespace BlueIQ_Neuware
                 startButton.Enabled = true;
             }
         }
+        */
+        private async void StartButton_Click(object sender, EventArgs e)
+        {
+            startButton.Enabled = false;
+
+            // A helper local function to show a missing info message box and return early.
+            static void ShowMissingInfoAndReturn()
+            {
+                MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                // Check for the presence of required fields based on the current mode.
+                bool fieldsMissing = JobInfo.Current.Mode switch
+                {
+                    "Neuware" or "B2B" => string.IsNullOrEmpty(locationTextBox.Text) || string.IsNullOrEmpty(jobOrPoTextBox.Text) || string.IsNullOrEmpty(excelPathTextBox.Text),
+                    "Manual_outbound" => string.IsNullOrEmpty(excelPathTextBox.Text),
+                    _ => true // Default case for when no valid mode is selected.
+                };
+
+                // If fields are missing based on the selected mode, show a message and return.
+                if (fieldsMissing)
+                {
+                    ShowMissingInfoAndReturn();
+                    return;
+                }
+
+                // For B2B, additionally check the credit combo box.
+                if (JobInfo.Current.Mode == "B2B" && string.IsNullOrEmpty(CreditcomboBox.Text))
+                {
+                    ShowMissingInfoAndReturn();
+                    return;
+                }
+
+                // If no mode is selected, show a message and return.
+                if (!new[] { "Neuware", "B2B", "Manual_outbound" }.Contains(JobInfo.Current.Mode))
+                {
+                    MessageBox.Show(Languages.Resources.SELECT_MODE_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Update variables.
+                JobInfo.Current.Location = locationTextBox.Text;
+                JobInfo.Current.JobOrPoNO = jobOrPoTextBox.Text;
+
+                // Attempt to log in.
+                UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGING);
+                bool loginSuccess = await Task.Run(() => !cancellationTokenSource.Token.IsCancellationRequested &&
+                                                         Global_functions.LoginToSite(excelPathTextBox.Text, usernameTextBox.Text, passwordTextBox.Text),
+                                                   cancellationTokenSource.Token);
+
+                if (loginSuccess)
+                {
+                    UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGED);
+                    try
+                    {
+                        await Task.Run(() =>
+                        {
+                            if (cancellationTokenSource.Token.IsCancellationRequested) return;
+                            switch (JobInfo.Current.Mode)
+                            {
+                                case "Neuware":
+                                    Neuware.Start_neuware(cancellationTokenSource.Token);
+                                    break;
+                                case "B2B":
+                                    B2B.Start_b2b(cancellationTokenSource.Token);
+                                    break;
+                                case "Manual_outbound":
+                                    Manual_outbound.Start_manual_outbound(cancellationTokenSource.Token);
+                                    break;
+                            }
+                        }, cancellationTokenSource.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        UpdateUI(() => statusLabel.Text = "Operation was cancelled");
+                    }
+                    UpdateUI(() => statusLabel.Text = Languages.Resources.BOOKED_ALL_STATUS);
+                    ShowMessage(Languages.Resources.PRO_FINISHED);
+                }
+                else
+                {
+                    string statusText = cancellationTokenSource.Token.IsCancellationRequested ? Languages.Resources.PROGRAM_STOPPED : Languages.Resources.LOG_FAIL_STATUS;
+                    UpdateUI(() => statusLabel.Text = statusText);
+                    if (!cancellationTokenSource.Token.IsCancellationRequested)
+                        ShowMessage(Languages.Resources.LOG_FAIL_MESS);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle the exception
+                ShowMessage(Languages.Resources.ERROR_GEN_MESS + ex.Message);
+                UpdateUI(() => statusLabel.Text = Languages.Resources.ERROR_GEN_STATUS);
+            }
+            finally
+            {
+                // Clean up resources and re-enable the start button no matter what happens.
+                CleanUp();
+                startButton.Enabled = true;
+            }
+        }
+
 
 
         // User Interface Update Methods
@@ -188,6 +293,14 @@ namespace BlueIQ_Neuware
         {
             MessageBox.Show(message, "Message", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
         }
+
+        public static bool ShowYesNoMessage(string message)
+        {
+            DialogResult result = MessageBox.Show(message, "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
+
+            return result == DialogResult.Yes;
+        }
+
 
         private void UpdateUI_statusLabel(string statusMessage)
         {
