@@ -1,5 +1,7 @@
 using OfficeOpenXml;
 using System.Globalization;
+using System.ComponentModel.DataAnnotations;
+using System.Threading;
 
 namespace BlueIQ_Neuware
 {
@@ -29,7 +31,7 @@ namespace BlueIQ_Neuware
             this.FormClosing += MainForm_FormClosing;
             SetLanguage(Global_functions.GetSettings());
         }
-        /*
+
         private async void StartButton_Click(object sender, EventArgs e)
         {
             try
@@ -37,52 +39,43 @@ namespace BlueIQ_Neuware
                 startButton.Enabled = false;
                 if (string.IsNullOrWhiteSpace(usernameTextBox.Text) || string.IsNullOrWhiteSpace(passwordTextBox.Text))
                 {
-                    MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    ShowMessage(Languages.Resources.FILL_FIELDS_MESS, MessageBoxIcon.Warning);
                     return;
                 }
-                // For Neuware Buchen
-                if (JobInfo.Current.Mode == "Neuware")
+                // Use a switch statement to handle the different modes
+                switch (JobInfo.Current.Mode)
                 {
-                    if (string.IsNullOrWhiteSpace(locationTextBox.Text) ||
-                        string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
-                        string.IsNullOrWhiteSpace(excelPathTextBox.Text))
-                    {
-                        MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    case "Neuware":
+                    case "B2B": // Combine "Neuware" and "B2B" since they have similar validation requirements
+                        if (string.IsNullOrWhiteSpace(locationTextBox.Text) ||
+                            string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
+                            string.IsNullOrWhiteSpace(excelPathTextBox.Text) ||
+                            (JobInfo.Current.Mode == "B2B" && string.IsNullOrWhiteSpace(CreditcomboBox.Text))) // Additional check for "B2B"
+                        {
+                            ShowMessage(Languages.Resources.FILL_FIELDS_MESS, MessageBoxIcon.Warning);
+                            return;
+                        }
+                        break;
+
+                    case "Manual_outbound":
+                        if (string.IsNullOrWhiteSpace(excelPathTextBox.Text))
+                        {
+                            ShowMessage(Languages.Resources.FILL_FIELDS_MESS, MessageBoxIcon.Warning);
+                            return;
+                        }
+                        break;
+
+                    default: // No valid mode selected
+                        ShowMessage(Languages.Resources.FILL_FIELDS_MESS, MessageBoxIcon.Warning);
                         return;
-                    }
                 }
-                // For B2B Buchen
-                else if (JobInfo.Current.Mode == "B2B")
-                {
-                    if (string.IsNullOrWhiteSpace(CreditcomboBox.Text) ||
-                        string.IsNullOrWhiteSpace(locationTextBox.Text) ||
-                        string.IsNullOrWhiteSpace(jobOrPoTextBox.Text) ||
-                        string.IsNullOrWhiteSpace(excelPathTextBox.Text))
-                    {
-                        MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-                }
-                // For Manual Outbound
-                else if (JobInfo.Current.Mode == "Manual_outbound")
-                {
-                    if (string.IsNullOrWhiteSpace(excelPathTextBox.Text))
-                    {
-                        MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-                }
-                else
-                {
-                    MessageBox.Show(Languages.Resources.SELECT_MODE_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
+
                 //update variables
                 JobInfo.Current.Location = locationTextBox.Text;
                 JobInfo.Current.JobOrPoNO = jobOrPoTextBox.Text;
 
                 // Update the status label to show "Logging in"
-                UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGING);
+                UpdateUI_statusLabel(Languages.Resources.LOGGING);
                 bool loginSuccess = await Task.Run(() =>
                 {
                     if (cancellationTokenSource.Token.IsCancellationRequested)
@@ -95,185 +88,68 @@ namespace BlueIQ_Neuware
                 if (loginSuccess)
                 {
                     //ShowMessage("Login successful");
-                    UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGED);
+                    UpdateUI_statusLabel(Languages.Resources.LOGGED);
                     try
                     {
-                        switch (JobInfo.Current.Mode)
+                        if (!cancellationTokenSource.Token.IsCancellationRequested)
                         {
-                            case "Neuware":
-                                await Task.Run(() =>
+                            await Task.Run(() =>
+                            {
+                                switch (JobInfo.Current.Mode)
                                 {
-                                    if (cancellationTokenSource.Token.IsCancellationRequested)
-                                    {
-                                        return;
-                                    }
-                                    Neuware.Start_neuware(cancellationTokenSource.Token);
-                                });
-                                break;
-
-                            case "B2B":
-                                await Task.Run(() =>
-                                {
-                                    if (cancellationTokenSource.Token.IsCancellationRequested)
-                                    {
-                                        return;
-                                    }
-                                    B2B.Start_b2b(cancellationTokenSource.Token);
-                                });
-                                break;
-
-                            case "Manual_outbound":
-                                await Task.Run(() =>
-                                {
-                                    if (cancellationTokenSource.Token.IsCancellationRequested)
-                                    {
-                                        return;
-                                    }
-                                    Manual_outbound.Start_manual_outbound(cancellationTokenSource.Token);
-                                });
-                                break;
+                                    case "Neuware":
+                                        Neuware.Start_neuware(cancellationTokenSource.Token);
+                                        break;
+                                    case "B2B":
+                                        B2B.Start_b2b(cancellationTokenSource.Token);
+                                        break;
+                                    case "Manual_outbound":
+                                        Manual_outbound.Start_manual_outbound(cancellationTokenSource.Token);
+                                        break;
+                                    default:
+                                        throw new InvalidOperationException("Invalid mode");
+                                }
+                            }, cancellationTokenSource.Token);
                         }
                     }
                     catch (OperationCanceledException)
                     {
-                        // This exception will be thrown if the task is cancelled.
-                        UpdateUI(() => statusLabel.Text = "Operation was cancelled");
-                        return;
+                        UpdateUI_statusLabel("Operation was cancelled");
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        ShowMessage("Invalid mode: " + ex.Message, MessageBoxIcon.Warning);
                     }
                     // Process the Excel file after successful login
-                    UpdateUI(() => statusLabel.Text = Languages.Resources.BOOKED_ALL_STATUS);
+                    UpdateUI_statusLabel(Languages.Resources.BOOKED_ALL_STATUS);
                     ShowMessage(Languages.Resources.BOOKED_ALL_MESS);
                 }
                 else
                 {
                     if (!cancellationTokenSource.Token.IsCancellationRequested)
                     {
-                        ShowMessage(Languages.Resources.LOG_FAIL_MESS);
-                        UpdateUI(() => statusLabel.Text = Languages.Resources.LOG_FAIL_STATUS);
+                        ShowMessage(Languages.Resources.LOG_FAIL_MESS, MessageBoxIcon.Error);
+                        UpdateUI_statusLabel(Languages.Resources.LOG_FAIL_STATUS);
                     }
                     else
                     {
-                        UpdateUI(() => statusLabel.Text = Languages.Resources.PROGRAM_STOPPED);
+                        UpdateUI_statusLabel(Languages.Resources.PROGRAM_STOPPED);
                     }
                 }
             }
             catch (Exception ex)
             {
                 // Handle the exception
-                ShowMessage(Languages.Resources.ERROR_GEN_MESS + ex.Message);
-                UpdateUI(() => statusLabel.Text = Languages.Resources.ERROR_GEN_STATUS);
+                ShowMessage(Languages.Resources.ERROR_GEN_MESS + ex.Message, MessageBoxIcon.Error);
+                UpdateUI_statusLabel(Languages.Resources.ERROR_GEN_STATUS);
             }
             finally
             {
                 CleanUp();
-                UpdateUI(() => statusLabel.Text = Languages.Resources.PRO_FINISHED);
+                UpdateUI_statusLabel(Languages.Resources.PRO_FINISHED);
                 startButton.Enabled = true;
             }
         }
-        */
-        private async void StartButton_Click(object sender, EventArgs e)
-        {
-            startButton.Enabled = false;
-
-            // A helper local function to show a missing info message box and return early.
-            static void ShowMissingInfoAndReturn()
-            {
-                MessageBox.Show(Languages.Resources.FILL_FIELDS_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                // Check for the presence of required fields based on the current mode.
-                bool fieldsMissing = JobInfo.Current.Mode switch
-                {
-                    "Neuware" or "B2B" => string.IsNullOrEmpty(locationTextBox.Text) || string.IsNullOrEmpty(jobOrPoTextBox.Text) || string.IsNullOrEmpty(excelPathTextBox.Text),
-                    "Manual_outbound" => string.IsNullOrEmpty(excelPathTextBox.Text),
-                    _ => true // Default case for when no valid mode is selected.
-                };
-
-                // If fields are missing based on the selected mode, show a message and return.
-                if (fieldsMissing)
-                {
-                    ShowMissingInfoAndReturn();
-                    return;
-                }
-
-                // For B2B, additionally check the credit combo box.
-                if (JobInfo.Current.Mode == "B2B" && string.IsNullOrEmpty(CreditcomboBox.Text))
-                {
-                    ShowMissingInfoAndReturn();
-                    return;
-                }
-
-                // If no mode is selected, show a message and return.
-                if (!new[] { "Neuware", "B2B", "Manual_outbound" }.Contains(JobInfo.Current.Mode))
-                {
-                    MessageBox.Show(Languages.Resources.SELECT_MODE_MESS, Languages.Resources.MISSING_INFO, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                // Update variables.
-                JobInfo.Current.Location = locationTextBox.Text;
-                JobInfo.Current.JobOrPoNO = jobOrPoTextBox.Text;
-
-                // Attempt to log in.
-                UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGING);
-                bool loginSuccess = await Task.Run(() => !cancellationTokenSource.Token.IsCancellationRequested &&
-                                                         Global_functions.LoginToSite(excelPathTextBox.Text, usernameTextBox.Text, passwordTextBox.Text),
-                                                   cancellationTokenSource.Token);
-
-                if (loginSuccess)
-                {
-                    UpdateUI(() => statusLabel.Text = Languages.Resources.LOGGED);
-                    try
-                    {
-                        await Task.Run(() =>
-                        {
-                            if (cancellationTokenSource.Token.IsCancellationRequested) return;
-                            switch (JobInfo.Current.Mode)
-                            {
-                                case "Neuware":
-                                    Neuware.Start_neuware(cancellationTokenSource.Token);
-                                    break;
-                                case "B2B":
-                                    B2B.Start_b2b(cancellationTokenSource.Token);
-                                    break;
-                                case "Manual_outbound":
-                                    Manual_outbound.Start_manual_outbound(cancellationTokenSource.Token);
-                                    break;
-                            }
-                        }, cancellationTokenSource.Token);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        UpdateUI(() => statusLabel.Text = "Operation was cancelled");
-                    }
-                    UpdateUI(() => statusLabel.Text = Languages.Resources.BOOKED_ALL_STATUS);
-                    ShowMessage(Languages.Resources.PRO_FINISHED);
-                }
-                else
-                {
-                    string statusText = cancellationTokenSource.Token.IsCancellationRequested ? Languages.Resources.PROGRAM_STOPPED : Languages.Resources.LOG_FAIL_STATUS;
-                    UpdateUI(() => statusLabel.Text = statusText);
-                    if (!cancellationTokenSource.Token.IsCancellationRequested)
-                        ShowMessage(Languages.Resources.LOG_FAIL_MESS);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Handle the exception
-                ShowMessage(Languages.Resources.ERROR_GEN_MESS + ex.Message);
-                UpdateUI(() => statusLabel.Text = Languages.Resources.ERROR_GEN_STATUS);
-            }
-            finally
-            {
-                // Clean up resources and re-enable the start button no matter what happens.
-                CleanUp();
-                startButton.Enabled = true;
-            }
-        }
-
 
 
         // User Interface Update Methods
@@ -289,9 +165,9 @@ namespace BlueIQ_Neuware
             }
         }
 
-        public static void ShowMessage(string message)
+        public static void ShowMessage(string message, MessageBoxIcon icon = MessageBoxIcon.Information)
         {
-            MessageBox.Show(message, "Message", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
+            MessageBox.Show(message, "Message", MessageBoxButtons.OK, icon, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
         }
 
         public static bool ShowYesNoMessage(string message)
@@ -300,7 +176,6 @@ namespace BlueIQ_Neuware
 
             return result == DialogResult.Yes;
         }
-
 
         private void UpdateUI_statusLabel(string statusMessage)
         {
@@ -554,6 +429,7 @@ namespace BlueIQ_Neuware
                 if (cancellationTokenSource != null)
                 {
                     cancellationTokenSource.Cancel();
+                    Thread.Sleep(10);
                     cancellationTokenSource.Dispose();
                     cancellationTokenSource = new CancellationTokenSource();
                 }
@@ -623,6 +499,7 @@ namespace BlueIQ_Neuware
         }
     }
 
+
     public static class JobInfo
     {
         public static JobDetails Current { get; set; } = new JobDetails();
@@ -637,5 +514,4 @@ namespace BlueIQ_Neuware
             public string? Mode { get; set; }
         }
     }
-
 }

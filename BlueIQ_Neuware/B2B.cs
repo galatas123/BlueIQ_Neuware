@@ -1,6 +1,8 @@
 ﻿using OfficeOpenXml;
 using OpenQA.Selenium;
 using SeleniumExtras.WaitHelpers;
+using System.Drawing;
+using System.Threading;
 
 namespace BlueIQ_Neuware
 {
@@ -9,7 +11,7 @@ namespace BlueIQ_Neuware
         public delegate void ProgressUpdateHandler(int value, string percentageText = "");
         public delegate void StatusUpdateHandler(string statusMessage);
         public delegate void SetMaxProgressHandler(int maxValue);
-        public delegate void MessageHandler(string message);
+        public delegate void MessageHandler(string message, MessageBoxIcon icon = MessageBoxIcon.Information);
         public delegate bool MessageHandlerYesNo(string message);
 
         // Define the event using the delegate
@@ -20,29 +22,24 @@ namespace BlueIQ_Neuware
         public static event MessageHandlerYesNo? ShowMessageYesNo;
 
         public static void Start_b2b(CancellationToken cancellationToken)
-        {
-            // Inside the method, you can periodically check if cancellation has been requested
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
+        {   
             // Ensure the driver and wait objects from global_functions are initialized
             if (Global_functions.driver == null || Global_functions.wait == null)
             {
                 throw new InvalidOperationException("WebDriver or WebDriverWait not initialized.");
             }
 
-            StartBooking();
+            StartBooking(cancellationToken);
 
             if(ShowMessageYesNo.Invoke("Devices Are booked. Check the pallet report and press yes to continue for Processing completed. Else press no to exit"))
             {
                 Global_functions.MassMove();
                 Global_functions.RemoveFromQuarantine();
                 Global_functions.UpdateToProcessingCompleted();
-            }    
+            }
         }
 
-        private static void StartBooking()
+        private static void StartBooking(CancellationToken cancellationToken)
         {
             int progressBarValue = 0;
             int progressBarMaximum = 0;
@@ -64,7 +61,10 @@ namespace BlueIQ_Neuware
 
             for (int row = 2; row <= (rowCount+1); row++)
             {
-
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
                 StatusUpdated?.Invoke(Languages.Resources.BOOK_NEXT);
                 data["part_number"] = ws.Cells[row, 2].Text;
                 data["serial"] = ws.Cells[row, 1].Text;

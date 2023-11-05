@@ -3,6 +3,7 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 
 namespace BlueIQ_Neuware
@@ -13,7 +14,7 @@ namespace BlueIQ_Neuware
         public delegate void ProgressUpdateHandler(int value, string percentageText = "");
         public delegate void StatusUpdateHandler(string statusMessage);
         public delegate void SetMaxProgressHandler(int maxValue);
-        public delegate void MessageHandler(string message);
+        public delegate void MessageHandler(string message, MessageBoxIcon icon = MessageBoxIcon.Information);
         public delegate void SaveFileHandler(out string? savedFilePath);
 
         // Define the event using the delegate
@@ -27,20 +28,17 @@ namespace BlueIQ_Neuware
         public static void Start_manual_outbound(CancellationToken cancellationToken)
         {
             // Inside the method, you can periodically check if cancellation has been requested
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
+            
             // Ensure the driver and wait objects from global_functions are initialized
             if (Global_functions.driver == null || Global_functions.wait == null)
             {
                 throw new InvalidOperationException("WebDriver or WebDriverWait not initialized.");
             }
             CreateExcelOut("results.xlsx");
-            Start_loop();
+            Start_loop(cancellationToken);
         }
 
-        public static void Start_loop()
+        public static void Start_loop(CancellationToken cancellationToken)
         {
             string oldScanId = "not defined";
             string oldOrderId = "not defined";
@@ -60,6 +58,10 @@ namespace BlueIQ_Neuware
             {
                 try
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
                     StatusUpdated?.Invoke(Languages.Resources.NEXT_ORDER);
                     oldScanId = ws.Cells[row, 1].Text;
                     newSerial = ws.Cells[row, 2].Text;

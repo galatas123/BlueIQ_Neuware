@@ -1,6 +1,7 @@
 ﻿using OfficeOpenXml;
 using OpenQA.Selenium;
 using SeleniumExtras.WaitHelpers;
+using System.Threading;
 
 namespace BlueIQ_Neuware
 {
@@ -10,7 +11,7 @@ namespace BlueIQ_Neuware
         public delegate void ProgressUpdateHandler(int value, string percentageText = "");
         public delegate void StatusUpdateHandler(string statusMessage);
         public delegate void SetMaxProgressHandler(int maxValue);
-        public delegate void MessageHandler(string message);
+        public delegate void MessageHandler(string message, MessageBoxIcon icon = MessageBoxIcon.Information);
 
         // Define the event using the delegate
         public static event ProgressUpdateHandler? ProgressUpdated;
@@ -21,20 +22,17 @@ namespace BlueIQ_Neuware
         public static void Start_neuware(CancellationToken cancellationToken)
         {
             // Inside the method, you can periodically check if cancellation has been requested
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
+            
             // Ensure the driver and wait objects from global_functions are initialized
             if (Global_functions.driver == null || Global_functions.wait == null)
             {
                 throw new InvalidOperationException("WebDriver or WebDriverWait not initialized.");
             }
 
-            StartBooking();
+            StartBooking(cancellationToken);
         }
 
-        private static void StartBooking()
+        private static void StartBooking(CancellationToken cancellationToken)
         {
             int progressBarValue = 0;
             int progressBarMaximum = 0;
@@ -55,11 +53,9 @@ namespace BlueIQ_Neuware
 
             for (int row = 2; row <= rowCount + 1; row++)
             {
-                // Check if the row is empty (assuming column 2 is the part number column)
-                if (string.IsNullOrEmpty(ws.Cells[row, 2].Text))
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    // Skip empty rows
-                    continue;
+                    return;
                 }
 
                 StatusUpdated?.Invoke(Languages.Resources.BOOK_NEXT);

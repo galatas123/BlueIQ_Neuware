@@ -14,16 +14,14 @@ namespace BlueIQ_Neuware
         public static WebDriverWait? waitAlert;
         public static ExcelPackage? package;
 
-        // Define a delegate for the event
         public delegate void StatusUpdateHandler(string statusMessage);
-
-        // Define the event using the delegate
         public static event StatusUpdateHandler? StatusUpdated;
+
 
         public static bool LoginToSite(string excelFilePath, string username, string password)
         { 
             SetupWebDriver();
-            var customWait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
+            var customWait = new WebDriverWait(driver, TimeSpan.FromSeconds(2));
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             if (!LoadPage(BlueDictionary.LINKS["LOGIN"]))
                 return false;
@@ -40,7 +38,6 @@ namespace BlueIQ_Neuware
                     return false;
                 try
                 {
-                    // Create a separate WebDriverWait instance with a shorter timeout
                     
                     IWebElement errorMessageElem = customWait.Until(ExpectedConditions.PresenceOfAllElementsLocatedBy(By.XPath(BlueDictionary.LOGIN_PAGE["LOGIN_ERROR"])))[0];
                     string errorMessage = errorMessageElem.Text.Trim();
@@ -264,6 +261,7 @@ namespace BlueIQ_Neuware
         {
             try
             {
+                StatusUpdated.Invoke("Receiving Job");
                 const string AUDIO = "Audio";
                 const string MISC = "Miscellaneous";
                 const string SORT = "SORT";
