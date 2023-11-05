@@ -1,6 +1,5 @@
 using OfficeOpenXml;
 using System.Globalization;
-using System.Reflection;
 
 namespace BlueIQ_Neuware
 {
@@ -28,20 +27,6 @@ namespace BlueIQ_Neuware
             this.Load += Form1_Load;
             this.FormClosing += MainForm_FormClosing;
             SetLanguage(Global_functions.GetSettings());
-        }
-
-        private void BrowseButton_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog openFileDialog = new()
-            {
-                Filter = "Excel Files|*.xls;*.xlsx;*.xlsm",
-                FilterIndex = 1
-            };
-
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                UpdateUI(() => excelPathTextBox.Text = openFileDialog.FileName);
-            }
         }
 
         private async void StartButton_Click(object sender, EventArgs e)
@@ -119,7 +104,7 @@ namespace BlueIQ_Neuware
                                 {
                                     if (cancellationTokenSource.Token.IsCancellationRequested)
                                     {
-                                        return; // Exit if cancellation was requested
+                                        return;
                                     }
                                     Neuware.Start_neuware(cancellationTokenSource.Token);
                                 });
@@ -130,7 +115,7 @@ namespace BlueIQ_Neuware
                                 {
                                     if (cancellationTokenSource.Token.IsCancellationRequested)
                                     {
-                                        return; // Exit if cancellation was requested
+                                        return;
                                     }
                                     B2B.Start_b2b(cancellationTokenSource.Token);
                                 });
@@ -141,7 +126,7 @@ namespace BlueIQ_Neuware
                                 {
                                     if (cancellationTokenSource.Token.IsCancellationRequested)
                                     {
-                                        return; // Exit if cancellation was requested
+                                        return;
                                     }
                                     Manual_outbound.Start_manual_outbound(cancellationTokenSource.Token);
                                 });
@@ -185,13 +170,8 @@ namespace BlueIQ_Neuware
             }
         }
 
-        private void StopButton_Click(object sender, EventArgs e)
-        {
-            CleanUp();
-            ShowMessage(Languages.Resources.APP_STOPPED);
-            UpdateUI(() => statusLabel.Text = Languages.Resources.PROGRAM_STOPPED);
-        }
 
+        // User Interface Update Methods
         private void UpdateUI(Action action)
         {
             if (this.InvokeRequired)
@@ -202,6 +182,11 @@ namespace BlueIQ_Neuware
             {
                 action();
             }
+        }
+
+        public static void ShowMessage(string message)
+        {
+            MessageBox.Show(message, "Message", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
         }
 
         private void UpdateUI_statusLabel(string statusMessage)
@@ -223,6 +208,8 @@ namespace BlueIQ_Neuware
             UpdateUI(() => progressBar.Maximum = maxValue);
         }
 
+
+        // file path and excel Methods
         private void ShowSaveFileDialog(out string? savedFilePath)
         {
             string? resultPath = null;
@@ -256,141 +243,6 @@ namespace BlueIQ_Neuware
                 return saveFileDialog.FileName;
             }
             return null;
-        }
-
-        private void EnglishToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            SetLanguage("en");
-        }
-
-        private void GermanToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            SetLanguage("de");
-        }
-
-        private void SetLanguage(string cultureName)
-        {
-            Global_functions.UpdateLanguageInSettingsFile(cultureName);
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo(cultureName);
-            // Now refresh the current form or reload it to see the changes
-            this.Controls.Clear();
-            this.InitializeComponent();
-            // Any other initialization code, like setting up menu items, etc.
-        }
-
-        public static void ShowMessage(string message)
-        {
-            MessageBox.Show(message, "Message", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
-        }
-
-        private void Form1_Load(object? sender, EventArgs e)
-        {
-            // Bring the form to the front when the application starts
-            this.BringToFront();
-        }
-
-        private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
-        {
-            CleanUp();
-        }
-
-        private void CleanUp()
-        {
-            // 1. Signal tasks/threads to stop
-            try
-            {
-                if (cancellationTokenSource != null)
-                {
-                    cancellationTokenSource.Cancel();
-                    cancellationTokenSource.Dispose();
-                    cancellationTokenSource = new CancellationTokenSource();
-                }
-            }
-            catch (Exception ex)
-            {
-                string currentMethodName = MethodBase.GetCurrentMethod().Name;
-                Global_functions.LogError(currentMethodName, ex.ToString());
-            }
-
-            // 2. Close the WebDriver if it exists
-            try
-            {
-                if (Global_functions.driver != null)
-                {
-                    Global_functions.driver.Quit();
-                    Global_functions.driver = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                string currentMethodName = MethodBase.GetCurrentMethod().Name;
-                Global_functions.LogError(currentMethodName, ex.ToString());
-            }
-
-            // 3. Close the Excel package if it exists
-            try
-            {
-                if (Global_functions.package != null)
-                {
-                    if (Global_functions.package.Workbook.Worksheets.Count > 0)
-                    {
-                        Global_functions.package.Save();
-                    }
-                    Global_functions.package.Dispose();
-                    Global_functions.package = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                string currentMethodName = MethodBase.GetCurrentMethod().Name;
-                Global_functions.LogError(currentMethodName, ex.ToString());
-            }
-
-            locationTextBox.Text = "";
-            jobOrPoTextBox.Text = "";
-            usernameTextBox.Text = "";
-            passwordTextBox.Text = "";
-            excelPathTextBox.Text = "";
-            JobInfo.Current.Mode = "";
-            JobInfo.Current.CreditType = "";
-
-            if (comboBoxMode != null)
-                comboBoxMode.SelectedIndex = -1;
-            if (CreditcomboBox != null)
-                CreditcomboBox.SelectedIndex = -1;
-
-            locationLabel.Visible = false;
-            locationTextBox.Visible = false;
-            jobOrPoLabel.Visible = false;
-            jobOrPoTextBox.Visible = false;
-            browseButton.Visible = false;
-            excelPathTextBox.Visible = false;
-            creditLabel.Visible = false;
-            CreditcomboBox.Visible = false;
-        }
-
-        private void AboutToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            using About aboutBox = new();
-            aboutBox.ShowDialog(this);
-        }
-
-        private void LocationTextBox_Enter(object sender, EventArgs e)
-        {
-            toolTipLocation.Show(Languages.Resources.LOCATION_TIP, locationTextBox);
-        }
-
-        private void PoNoTextBox_Enter(object sender, EventArgs e)
-        {
-            toolTipJobOrPoNo.Show(Languages.Resources.PONO_TIP, jobOrPoTextBox);
-        }
-
-        private void ExcelFilePathTextBox_Enter(object sender, EventArgs e)
-        {
-            if (JobInfo.Current.Mode == "Manual_outbound")
-                toolTipExcel.Show(Languages.Resources.EXCEL_FILE_TIP2, excelPathTextBox);
-            else
-                toolTipExcel.Show(Languages.Resources.EXCEL_FILE_TIP1, excelPathTextBox);
         }
 
         private void CreateExcelTemplateToolStripMenuItem_Click(object sender, EventArgs e)
@@ -435,6 +287,73 @@ namespace BlueIQ_Neuware
                 FileInfo fi = new(saveFileDialog.FileName);
                 excel.SaveAs(fi);
             }
+        }
+
+
+        //Element interface methods
+        private void StopButton_Click(object sender, EventArgs e)
+        {
+            CleanUp();
+            ShowMessage(Languages.Resources.APP_STOPPED);
+            UpdateUI(() => statusLabel.Text = Languages.Resources.PROGRAM_STOPPED);
+        }
+
+        private void BrowseButton_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "Excel Files|*.xls;*.xlsx;*.xlsm",
+                FilterIndex = 1
+            };
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                UpdateUI(() => excelPathTextBox.Text = openFileDialog.FileName);
+            }
+        }
+
+        private void EnglishToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SetLanguage("en");
+        }
+
+        private void GermanToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SetLanguage("de");
+        }
+
+        private void SetLanguage(string cultureName)
+        {
+            Global_functions.UpdateLanguageInSettingsFile(cultureName);
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo(cultureName);
+            // Now refresh the current form or reload it to see the changes
+            this.Controls.Clear();
+            this.InitializeComponent();
+            // Any other initialization code, like setting up menu items, etc.
+        }
+
+        private void AboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using About aboutBox = new();
+            aboutBox.ShowDialog(this);
+        }
+
+        private void LocationTextBox_Enter(object sender, EventArgs e)
+        {
+            toolTipLocation.Show(Languages.Resources.LOCATION_TIP, locationTextBox);
+        }
+
+        private void PoNoTextBox_Enter(object sender, EventArgs e)
+        {
+            toolTipJobOrPoNo.Show(Languages.Resources.PONO_TIP, jobOrPoTextBox);
+        }
+
+        private void ExcelFilePathTextBox_Enter(object sender, EventArgs e)
+        {
+            if (JobInfo.Current.Mode == "Manual_outbound")
+                toolTipExcel.Show(Languages.Resources.EXCEL_FILE_TIP2, excelPathTextBox);
+            else
+                toolTipExcel.Show(Languages.Resources.EXCEL_FILE_TIP1, excelPathTextBox);
         }
 
         private void ComboBoxMode_SelectedIndexChanged(object sender, EventArgs e)
@@ -498,6 +417,96 @@ namespace BlueIQ_Neuware
                     JobInfo.Current.CreditType = "Swap";
                     break;
             }
+        }
+
+        //Form methods
+        private void Form1_Load(object? sender, EventArgs e)
+        {
+            // Bring the form to the front when the application starts
+            this.BringToFront();
+        }
+
+        private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            CleanUp();
+        }
+
+
+
+        private void CleanUp()
+        {
+            // 1. Signal tasks/threads to stop
+            try
+            {
+                if (cancellationTokenSource != null)
+                {
+                    cancellationTokenSource.Cancel();
+                    cancellationTokenSource.Dispose();
+                    cancellationTokenSource = new CancellationTokenSource();
+                }
+            }
+            catch (Exception ex)
+            {
+                Global_functions.LogError(Global_functions.GetCallerFunctionName(), ex.ToString());
+            }
+
+            // 2. Close the WebDriver if it exists
+            try
+            {
+                if (Global_functions.driver != null)
+                {
+                    Global_functions.driver.Quit();
+                    Global_functions.driver = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Global_functions.LogError(Global_functions.GetCallerFunctionName(), ex.ToString());
+            }
+
+            // 3. Close the Excel package if it exists
+            try
+            {
+                if (Global_functions.package != null)
+                {
+                    if (Global_functions.package.Workbook.Worksheets.Count > 0)
+                    {
+                        Global_functions.package.Save();
+                    }
+                    Global_functions.package.Dispose();
+                    Global_functions.package = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Global_functions.LogError(Global_functions.GetCallerFunctionName(), ex.ToString());
+            }
+
+            locationTextBox.Text = "";
+            jobOrPoTextBox.Text = "";
+            usernameTextBox.Text = "";
+            passwordTextBox.Text = "";
+            excelPathTextBox.Text = "";
+            JobInfo.Current.Mode = "";
+            JobInfo.Current.CreditType = "";
+            JobInfo.Current.LoadId = "";
+            JobInfo.Current.JobOrPoNO = "";
+            JobInfo.Current.PalletId = "";
+            JobInfo.Current.Location = "";
+
+            if (comboBoxMode != null)
+                comboBoxMode.SelectedIndex = -1;
+            if (CreditcomboBox != null)
+                CreditcomboBox.SelectedIndex = -1;
+
+            locationLabel.Visible = false;
+            locationTextBox.Visible = false;
+            jobOrPoLabel.Visible = false;
+            jobOrPoTextBox.Visible = false;
+            browseButton.Visible = false;
+            excelPathTextBox.Visible = false;
+            creditLabel.Visible = false;
+            CreditcomboBox.Visible = false;
         }
     }
 

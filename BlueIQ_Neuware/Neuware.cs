@@ -147,17 +147,14 @@ namespace BlueIQ_Neuware
                 Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"].ToString());
                 Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
 
-                try
+                var partNumber_el = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.Id(BlueDictionary.AUDIT_PAGE["PART_TABLE"])));
+                if (!partNumber_el.GetAttribute("value").Contains(data["part_number"]?.ToString() ?? ""))
                 {
-                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString(), true);
-                }
-                catch (Exception)
-                {
-                    Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"].ToString());
-                    Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
-                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"].ToString(), true);
+                    ws.Cells[row, maxColumn].Value = "check if part number is correct and if it exists in BlueIQ";
+                    return false;
                 }
 
+                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString(), true);
                 Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["ASSET"]), BlueDictionary.ASSET.ToString(), true);
                 Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["WEIGHT"]), BlueDictionary.WEIGHT.ToString(), true);
 
@@ -174,20 +171,12 @@ namespace BlueIQ_Neuware
 
                 Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["SAVE"]), false);
 
-                try
+                string alertMessage = Global_functions.HandleAlert();
+                if (alertMessage != "")
                 {
-                    string alertMessage = Global_functions.HandleAlert();
-                    // Update the Excel file with the alert message.
                     ws.Cells[row, maxColumn].Value = alertMessage;
-
                     return false;
                 }
-                catch (WebDriverTimeoutException)
-                {
-                    Global_functions.WaitForLoadingToDisappear();
-                }
-
-                Global_functions.WaitForLoadingToDisappear();
 
                 if (!Global_functions.TryCloseSecondTab())
                 {
@@ -195,6 +184,7 @@ namespace BlueIQ_Neuware
                     ws.Cells[row, maxColumn].Value = "Failed to close second tab";
                     return false;
                 }
+
                 ws.Cells[row, maxColumn].Value = "Done";
                 return true;
             }

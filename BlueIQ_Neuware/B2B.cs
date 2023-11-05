@@ -33,13 +33,14 @@ namespace BlueIQ_Neuware
             StartBooking();
             Global_functions.MassMove();
             Global_functions.RemoveFromQuarantine();
+            Global_functions.UpdateToProcessingCompleted();
         }
 
         private static void StartBooking()
         {
             int progressBarValue = 0;
             int progressBarMaximum = 0;
-            int maxColumn = 3;
+            int maxColumn = 2;
             bool newPallet = true;
             Dictionary<string, object> data = new();
 
@@ -50,20 +51,18 @@ namespace BlueIQ_Neuware
             Global_functions.CreateJob(rowCount, false);
             if (JobInfo.Current.PalletId == "")
                 throw new Exception("Failed to create job");
+
             SetMaxProgress?.Invoke(rowCount);
             progressBarMaximum = rowCount;
             ProgressUpdated?.Invoke(0); // Reset the progress bar at the start.
+
             for (int row = 2; row <= (rowCount+1); row++)
             {
-                // Check if the row is empty (assuming column 2 is the part number column)
-                if (string.IsNullOrEmpty(ws.Cells[row, 1].Text))
-                {
-                    continue;
-                }
 
                 StatusUpdated?.Invoke(Languages.Resources.BOOK_NEXT);
                 data["part_number"] = ws.Cells[row, 2].Text;
                 data["serial"] = ws.Cells[row, 1].Text;
+
                 try
                 {
                     if (newPallet)
@@ -74,6 +73,7 @@ namespace BlueIQ_Neuware
                             continue;
                         }
                     }
+
                     if ((data["serial"].ToString().Length == 8) && (data["part_number"].ToString().Length == 7))
                     {
                         if (!AddDevice(data, newPallet, ws, row, maxColumn))
@@ -83,6 +83,7 @@ namespace BlueIQ_Neuware
                             continue;
                         }
                     }
+
                     else
                     {
                         if (data["serial"].ToString().Length == 8)
@@ -91,13 +92,16 @@ namespace BlueIQ_Neuware
                             ws.Cells[row, maxColumn].Value = "part number not 7 digits long";
                         continue;
                     }
+
                     newPallet = false;
                 }
+
                 catch (Exception ex)
                 {
                     Global_functions.LogError(Global_functions.GetCallerFunctionName(), (ex.ToString()));
                     continue;
                 }
+
                 finally
                 {
                     if (progressBarValue < rowCount + 1)
@@ -120,7 +124,6 @@ namespace BlueIQ_Neuware
                 int maxRetries = 3;
                 int currentRetry = 0;
                 Global_functions.WaitForLoadingToDisappear();
-                System.Threading.Thread.Sleep(500);
 
                 while (!isElementClickable && currentRetry < maxRetries)
                 {
@@ -143,18 +146,15 @@ namespace BlueIQ_Neuware
 
                 Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"]?.ToString());
                 Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
-                try
+
+                var partNumber_el = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.Id(BlueDictionary.AUDIT_PAGE["PART_TABLE"])));
+                if (!partNumber_el.GetAttribute("value").Contains(data["part_number"]?.ToString() ?? ""))
                 {
-                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString(), true);
-                }
-                catch (Exception)
-                {
-                    Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), data["part_number"]?.ToString());
-                    Global_functions.SendKeysToVisibleElement(By.XPath(BlueDictionary.AUDIT_PAGE["PART_NUMBER"]), OpenQA.Selenium.Keys.Tab);
-                    System.Threading.Thread.Sleep(500);
-                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString(), true);
+                    ws.Cells[row, maxColumn].Value = "check if part number is correct and if it exists in BlueIQ";
+                    return false;
                 }
 
+                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#"]), data["serial"]?.ToString(), true);
                 Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["ASSET"]), BlueDictionary.ASSET.ToString(), true);
                 Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["WEIGHT"]), BlueDictionary.WEIGHT.ToString(), true);
 
@@ -165,7 +165,6 @@ namespace BlueIQ_Neuware
                 }
 
                 Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["WARRANTY"]));
-                //Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["NEW_IN_BOX"]));
                 if (JobInfo.Current.CreditType == "Full Credit")
                 {
                     Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERVICE_TYPE_CREDIT"]));
@@ -180,20 +179,12 @@ namespace BlueIQ_Neuware
 
                 Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["SAVE"]), false);
 
-                try
+                string alertMessage = Global_functions.HandleAlert();
+                if (alertMessage != "")
                 {
-                    string alertMessage = Global_functions.HandleAlert();
-                    // Update the Excel file with the alert message.
                     ws.Cells[row, maxColumn].Value = alertMessage;
-
                     return false;
                 }
-                catch (WebDriverTimeoutException)
-                {
-                    Global_functions.WaitForLoadingToDisappear();
-                }
-
-                Global_functions.WaitForLoadingToDisappear();
 
                 if (!Global_functions.TryCloseSecondTab())
                 {

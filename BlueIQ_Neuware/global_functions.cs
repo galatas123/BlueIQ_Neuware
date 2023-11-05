@@ -87,12 +87,6 @@ namespace BlueIQ_Neuware
             waitAlert = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
         }
 
-        public static void CloseDriver()
-        {
-            package.Dispose();
-            driver?.Quit();
-        }
-
         public static bool LoadPage(string page)
         {
             driver.Navigate().GoToUrl(page);
@@ -296,10 +290,10 @@ namespace BlueIQ_Neuware
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["QTY_PALLET"]), "1");
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["DATE"]), formattedDate);
                 SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["ARRIVAL_TIME"]), formattedTime);
+
                 ClickElement(By.XPath(BlueDictionary.RECEIVING_PAGE["SAVE&EXIT"]), false);
                 System.Threading.Thread.Sleep(500);
                 HandleAlert();
-                System.Threading.Thread.Sleep(500);
 
                 JobInfo.Current.PalletId = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.RECEIVING_PAGE["PALLET_ID"]))).Text;
                 JobInfo.Current.LoadId = wait.Until(ExpectedConditions.ElementIsVisible(By.Id(BlueDictionary.RECEIVING_PAGE["LOAD_ID"]))).Text;
@@ -331,16 +325,20 @@ namespace BlueIQ_Neuware
         {
             try
             {
-                StatusUpdated.Invoke("Adding Pallet");
-                if (!LoadPage(BlueDictionary.LINKS["AUDIT"]))
+                StatusUpdated?.Invoke("Adding Pallet");
+                if (!LoadPage(BlueDictionary.LINKS["AUDIT"])) // Replace with your actual URL
                     return false;
-                SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["PALLET_ID"]), JobInfo.Current.PalletId);
-                ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCK_PALLET"]));
+
+                string pallet_id = wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.AUDIT_PAGE["PALLET_ID"]))).Text;
+                if (string.IsNullOrEmpty(pallet_id))
+                {
+                    SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["PALLET_ID"]), JobInfo.Current.PalletId);
+                    ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["LOCK_PALLET"]));
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                // Maybe log the error or update a label on your form
                 LogError(GetCallerFunctionName(), (ex.ToString()));
                 return false;
             }
@@ -371,9 +369,7 @@ namespace BlueIQ_Neuware
                     }
                     WaitForLoadingToDisappear();
                     SendKeysToElement(By.Id(BlueDictionary.QUARANTINE_PAGE["RELEASE_REASON"]), JobInfo.Current.Mode);
-                    Thread.Sleep(1000);
                     ClickElement(By.Id(BlueDictionary.QUARANTINE_PAGE["RELEASE_YES"]), false);
-                    Thread.Sleep(1000);
                     alertText = HandleAlert(); // You need to define HandleAlert method
                 }
 
@@ -414,7 +410,50 @@ namespace BlueIQ_Neuware
             }
         }
 
+        public static bool UpdateToProcessingCompleted()
+        {
+            try
+            {
+                if (!LoadPage(BlueDictionary.LINKS["LOAD"] + JobInfo.Current.LoadId))
+                {
+                    return false;
+                }
 
+                ClickElement(By.Id(BlueDictionary.LOAD_PAGE["LOAD_STATUS"]));
+                IWebElement presortCompletedCheckbox = wait.Until(ExpectedConditions.ElementToBeClickable(By.Id(BlueDictionary.LOAD_PAGE["PRESORT_COMPLETED"])));
+                bool isPresortCompletedChecked = presortCompletedCheckbox.Selected;
+                // Check if the 'OPS_COMPLETED' checkbox is checked
+                IWebElement opsCompletedCheckbox = wait.Until(ExpectedConditions.ElementToBeClickable(By.Id(BlueDictionary.LOAD_PAGE["OPS_COMPLETED"])));
+                bool isOpsCompletedChecked = opsCompletedCheckbox.Selected;
+                // If both checkboxes are checked, click on 'AUDIT_COMPLETED'
+                if (isPresortCompletedChecked && isOpsCompletedChecked)
+                {
+                    ClickElement(By.Id(BlueDictionary.LOAD_PAGE["AUDIT_COMPLETED"]));
+                }
+                ClickElement(By.Id(BlueDictionary.LOAD_PAGE["SAVE"]), false);
+                HandleAlert();
+
+                if (!LoadPage(BlueDictionary.LINKS["JOBS"] + JobInfo.Current.JobOrPoNO))
+                {
+                    return false;
+                }
+
+                ClickElement(By.Id(BlueDictionary.JOBS_PAGE["SCHEDULES_TAB"]));
+                SelectDropdownByVisibleText(By.Id(BlueDictionary.JOBS_PAGE["CARRIER"]), "Other");
+                ClickElement(By.Id(BlueDictionary.JOBS_PAGE["JOB_INFO_TAB"]));
+                SelectDropdownByVisibleText(By.Id(BlueDictionary.JOBS_PAGE["JOB_STATUS"]), "Processing Completed");
+                ClickElement(By.Id(BlueDictionary.JOBS_PAGE["SAVE"]));
+                SendKeysToElement(By.Id(BlueDictionary.JOBS_PAGE["REASON_NOTE"]), BlueDictionary.JOBS_PAGE["REASON"]);
+                ClickElement(By.Id(BlueDictionary.JOBS_PAGE["REASON_OK"]), false);
+                HandleAlert();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogError(GetCallerFunctionName(), (ex.ToString()));
+                return false;
+            }   
+        }
 
         public static bool TryCloseSecondTab(int retries = 5)
         {
@@ -439,8 +478,10 @@ namespace BlueIQ_Neuware
                 // If second tab was not found or there was an issue, wait for a short duration before retrying.
                 System.Threading.Thread.Sleep(500);
             }
-            // If we reach here, it means we've exhausted our retries and the second tab couldn't be closed.
-            return false;
+            var driverWindowHandle = driver.WindowHandles;
+            if (driverWindowHandle.Count > 1)
+                return false;
+            return true;
         }
 
         public static void LogError(string functionName, string errorMessage)

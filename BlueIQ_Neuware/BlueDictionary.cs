@@ -5,7 +5,6 @@ namespace BlueIQ_Neuware
 {
     internal class BlueDictionary
     {
-        public const string NEW_DEVICES_LOCATION = "68.SRT15";
         public const int WEIGHT = 1;
         public const string ASSET = "NA";
         public const string loading = "//*[@id=\"ctl00_ctl00_imgWorking\"]";
@@ -18,6 +17,7 @@ namespace BlueIQ_Neuware
             { "ORDER_DETAIL", "https://blueiq.cloudblue.com/Remarketing/OrderDetail.aspx?oid=" },
             { "REPAIR_DETAIL", "https://blueiq.cloudblue.com/Audit/RepairDetailLOB.aspx?Scanid=" },
             { "JOBS", "https://blueiq.cloudblue.com/Job1/Jobs.aspx?searchby=Job&searchvalue=" },
+            { "LOAD", "https://blueiq.cloudblue.com/Receiving/LoadPalletDetails.aspx?loadid="},
             { "RECEIVING", "https://blueiq.cloudblue.com/Receiving/LoadPalletDetails.aspx" },
             { "MASS_MOVE", "https://blueiq.cloudblue.com/Audit/MassMove.aspx" },
             { "QUARANTINE", "https://blueiq.cloudblue.com/Inventory/Quarantine.aspx" }
@@ -37,11 +37,13 @@ namespace BlueIQ_Neuware
         {
             { "LOADING", "//*[@id=\"ctl00_ctl00_imgWorking\"]" },
             { "PALLET_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtPalletID\"]" },
-            { "UPDATE_COMP", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkUpdate\"]" },
+            { "UPDATE_COMP", "ctl00_ctl00_MainContent_PageMainContent_lnkUpdate" }, //By ID
+            { "DUNNAGE_YES", "ctl00_ctl00_MainContent_PageMainContent_btnCreateDunnageScanYes"}, //By ID close second tab after
+            { "SORTED_YES", "ctl00_ctl00_MainContent_PageMainContent_btnLoadPreSortOk"}, //By ID
             { "LOCK_PALLET", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_chkLockPallet\"]" },
             { "PART_NUMBER", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_ddlPartNumberSerialized_I\"]" },
             { "PART_NUMBER_BTN", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_ddlPartNumberSerialized_B-1\"]" },
-            { "PART_TABLE", "ctl00_ctl00_MainContent_PageMainContent_ddlPartNumberSerialized_DDD_L_LBI" },
+            { "PART_TABLE", "ctl00_ctl00_MainContent_PageMainContent_ddlPartNumberSerialized_I" }, //ID,
             { "SERIAL#", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtSerialNumber_I\"]" },
             { "ASSET", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtAssetNumber\"]" },
             { "WEIGHT", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtWeight\"]" },
@@ -155,13 +157,31 @@ namespace BlueIQ_Neuware
             { "PRINT", "//*[@id=\"btnPrint\"]" }
         };
 
+        //all by id from here on
         public static readonly Dictionary<string, string> JOBS_PAGE = new()
         {
-            { "ATTACHMENT", "//*[@id=\"__tab_ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabAttachments\"]" },
-            { "DOCUMENT", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabAttachments_ucDocuments_gvDocumentsList_ctl02_lnk_downloadDocument\"]" }
+            { "ATTACHMENT_TAB", "__tab_ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabAttachments" },
+            { "LOAD_TAB", "__tab_ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabLoadDetails"},
+            { "SCHEDULES_TAB", "__tab_ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabSchedules"},
+            { "JOB_INFO_TAB", "__tab_ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabSource"},
+            { "JOB_STATUS", "ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabSource_ddlJobStatus"}, //SELECT Processing Completed
+            { "DOCUMENT", "ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabAttachments_ucDocuments_gvDocumentsList_ctl02_lnk_downloadDocument" },
+            { "CARRIER", "ctl00_ctl00_MainContent_PageMainContent_tabJobs_tabSchedules_cbpCustomCarrier_ddlCarrier"}, //SELECT "Other"
+            { "SAVE", "ctl00_ctl00_MainContent_PageMainContent_btnSave"},
+            { "REASON_NOTE", "TxtsaveJobReason"},
+            { "REASON", "Updating to processing completed"},
+            { "REASON_OK", "ctl00_ctl00_MainContent_PageMainContent_ASPxPopupNotesReason_btnSaveJobreason"}
+            
         };
 
-        //all by id from here on
+        public static readonly Dictionary<string, string> LOAD_PAGE = new()
+        {
+            { "LOAD_STATUS", "ctl00_ctl00_contentLeftWrapper_contentLeftMenu_lnkLoadStatus"},
+            { "AUDIT_COMPLETED", "ctl00_ctl00_MainContent_PageMainContent_chkAuditCompleted"}, //Checkbox
+            { "PRESORT_COMPLETED", "ctl00_ctl00_MainContent_PageMainContent_chkSortCompleted"}, //Checkbox
+            { "OPS_COMPLETED", "ctl00_ctl00_MainContent_PageMainContent_chkOpsProcessingCompleteDate"}, //Checkbox
+            { "SAVE", "ctl00_ctl00_MainContent_PageMainContent_btnSave"}
+        };
 
         public static readonly Dictionary<string, string> MASS_MOVE_PAGE = new()
         {
