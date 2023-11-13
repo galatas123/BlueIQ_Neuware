@@ -175,6 +175,9 @@ B:New swap serial</value>
 For questions or requests please contact:
 nAnil.chikmetoglou@ingrammicro.com"</value>
   </data>
+  <data name="JOB_COMP_MESS" xml:space="preserve">
+    <value>Job has been completed</value>
+  </data>
   <data name="LANGUAGE" xml:space="preserve">
     <value>Language</value>
   </data>

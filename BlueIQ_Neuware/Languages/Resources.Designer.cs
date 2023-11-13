@@ -215,6 +215,15 @@ namespace BlueIQ_Neuware.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Job has been completed.
+        /// </summary>
+        internal static string JOB_COMP_MESS {
+            get {
+                return ResourceManager.GetString("JOB_COMP_MESS", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Language.
         /// </summary>
         internal static string LANGUAGE {

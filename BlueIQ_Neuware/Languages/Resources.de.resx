@@ -175,6 +175,9 @@ B: Neue Tausch-Seriennummer</value>
 Bei Fragen oder Anfragen kontaktieren Sie bitte:
 nAnil.chikmetoglou@ingrammicro.com</value>
   </data>
+  <data name="JOB_COMP_MESS" xml:space="preserve">
+    <value>Job ist fertig</value>
+  </data>
   <data name="LANGUAGE" xml:space="preserve">
     <value>Sprache</value>
   </data>

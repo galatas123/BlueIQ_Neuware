@@ -121,8 +121,8 @@ namespace BlueIQ_Neuware
                         ShowMessage("Invalid mode: " + ex.Message, MessageBoxIcon.Warning);
                     }
                     // Process the Excel file after successful login
-                    UpdateUI_statusLabel(Languages.Resources.BOOKED_ALL_STATUS);
-                    ShowMessage(Languages.Resources.BOOKED_ALL_MESS);
+                    UpdateUI_statusLabel(Languages.Resources.JOB_COMP_MESS);
+                    ShowMessage(Languages.Resources.JOB_COMP_MESS);
                 }
                 else
                 {

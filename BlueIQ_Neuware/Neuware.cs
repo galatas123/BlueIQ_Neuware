@@ -36,7 +36,7 @@ namespace BlueIQ_Neuware
         {
             int progressBarValue = 0;
             int progressBarMaximum = 0;
-            int maxColumn = 2;
+            int maxColumn = 3;
             bool newPallet = true;
             Dictionary<string, object> data = new();
             var ws = Global_functions.package.Workbook.Worksheets[0]; // Access package from the class level
@@ -59,8 +59,8 @@ namespace BlueIQ_Neuware
                 }
 
                 StatusUpdated?.Invoke(Languages.Resources.BOOK_NEXT);
-                data["part_number"] = ws.Cells[row, 2].Text;
-                data["serial"] = ws.Cells[row, 1].Text;
+                data["part_number"] = ws.Cells[row, 2].Text.Trim();
+                data["serial"] = ws.Cells[row, 1].Text.Trim();
 
                 try
                 {

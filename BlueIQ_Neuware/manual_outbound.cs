@@ -63,8 +63,8 @@ namespace BlueIQ_Neuware
                         return;
                     }
                     StatusUpdated?.Invoke(Languages.Resources.NEXT_ORDER);
-                    oldScanId = ws.Cells[row, 1].Text;
-                    newSerial = ws.Cells[row, 2].Text;
+                    oldScanId = ws.Cells[row, 1].Text.Trim();
+                    newSerial = ws.Cells[row, 2].Text.Trim();
                     Console.WriteLine($"new serial: {newSerial}, old scan: {oldScanId}");
 
                     newScanId = GetNewScanId(newSerial);

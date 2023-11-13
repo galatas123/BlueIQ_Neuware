@@ -114,7 +114,7 @@ namespace BlueIQ_Neuware
                 }
                 catch (WebDriverTimeoutException)
                 {
-                    if (i < retries - 1)
+                    if (i < retries)
                         StatusUpdated?.Invoke("Retrying..      .");
                 }
             }

@@ -33,8 +33,11 @@ namespace BlueIQ_Neuware
 
             if(ShowMessageYesNo.Invoke("Devices Are booked. Check the pallet report and press yes to continue for Processing completed. Else press no to exit"))
             {
+                StatusUpdated.Invoke("Mass Move To Quarantine");
                 Global_functions.MassMove();
+                StatusUpdated.Invoke("Release from Quarantine");
                 Global_functions.RemoveFromQuarantine();
+                StatusUpdated.Invoke("Update to processing completed");
                 Global_functions.UpdateToProcessingCompleted();
             }
         }
@@ -43,7 +46,7 @@ namespace BlueIQ_Neuware
         {
             int progressBarValue = 0;
             int progressBarMaximum = 0;
-            int maxColumn = 2;
+            int maxColumn = 3;
             bool newPallet = true;
             Dictionary<string, object> data = new();
 
@@ -51,7 +54,8 @@ namespace BlueIQ_Neuware
 
             // Find the last row with data
             int rowCount = ws.Cells[ws.Dimension.Address].Rows - 1;
-            Global_functions.CreateJob(rowCount, false);
+            //Global_functions.CreateJob(rowCount, false);
+            JobInfo.Current.PalletId = "3479347";
             if (JobInfo.Current.PalletId == "")
                 throw new Exception("Failed to create job");
 
@@ -66,8 +70,8 @@ namespace BlueIQ_Neuware
                     return;
                 }
                 StatusUpdated?.Invoke(Languages.Resources.BOOK_NEXT);
-                data["part_number"] = ws.Cells[row, 2].Text;
-                data["serial"] = ws.Cells[row, 1].Text;
+                data["part_number"] = ws.Cells[row, 2].Text.Trim();
+                data["serial"] = ws.Cells[row, 1].Text.Trim();
 
                 try
                 {
