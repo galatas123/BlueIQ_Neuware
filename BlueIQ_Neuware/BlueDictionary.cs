@@ -14,6 +14,7 @@ namespace BlueIQ_Neuware
             { "LOGIN", "https://blueiq.cloudblue.com/" },
             { "AUDIT", "https://blueiq.cloudblue.com/Audit/PreSort/PreSortInfoCapture.aspx" },
             { "Q&ORDERS", "https://blueiq.cloudblue.com/Remarketing/QuoteOrder.aspx" },
+            { "ORDER_FULLFILLMENT", "https://blueiq.cloudblue.com/Remarketing/OrderFulfillment.aspx" },
             { "ORDER_DETAIL", "https://blueiq.cloudblue.com/Remarketing/OrderDetail.aspx?oid=" },
             { "REPAIR_DETAIL", "https://blueiq.cloudblue.com/Audit/RepairDetailLOB.aspx?Scanid=" },
             { "JOBS", "https://blueiq.cloudblue.com/Job1/Jobs.aspx?searchby=Job&searchvalue=" },
@@ -68,7 +69,8 @@ namespace BlueIQ_Neuware
             { "SEARCH_BUTTON", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnSearch\"]" },
             { "NAME", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[2]/td/table/tbody/tr[4]/td/table/tbody/tr/td/div[1]/table/tbody/tr[4]/td[3]" },
             { "PO", "/html/body/form/div[3]/div[6]/div/div[2]/div/div/div/contenttemplate/table/tbody/tr/td/table/tbody/tr[2]/td/table/tbody/tr[4]/td/table/tbody/tr/td/div[1]/table/tbody/tr[4]/td[9]" },
-            { "SO_DATE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvQuotes_tccell0_3\"]" }
+            { "SO_DATE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvQuotes_tccell0_3\"]" },
+            { "EXPORT_EXCEL", "ctl00_ctl00_MainContent_PageMainContent_ImgExcel" } //ID btn
         };
 
         public static readonly Dictionary<string, string> ORDER_DETAILS_PAGE = new()
@@ -110,7 +112,8 @@ namespace BlueIQ_Neuware
             { "MESSAGE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lblAddScanIDErrorMessage\"]" },
             { "RECLAIM_LABEL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvDetails_DXSelBtn1_D\"]" },
             { "DELETE", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkDelete\"]" },
-            { "CONFIRM_DEL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnDeletsSelectedItems\"]" }
+            { "CONFIRM_DEL", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_btnDeletsSelectedItems\"]" },
+            { "ORDER_DATE", "ctl00_ctl00_MainContent_PageMainContent_lblSODate"} //ID text
         };
 
         public static readonly Dictionary<string, string> REPAIR_DETAIL_PAGE = new()
@@ -133,7 +136,7 @@ namespace BlueIQ_Neuware
         public static readonly Dictionary<string, string> RECEIVING_PAGE = new()
         {
             { "JOB_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtJobID\"]" },
-            { "PONO", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lblCurrentLoadID\"]" },
+            { "PONO", "ctl00_ctl00_MainContent_PageMainContent_txtCustomerPO"}, //ID
             { "SEARCH_JOB", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_txtJobID\"]" },
             { "SEARCH_BTN", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_lnkShowJobs\"]" },
             { "PALLET_ID", "//*[@id=\"ctl00_ctl00_MainContent_PageMainContent_gvLoadPallet_ctl02_lblPallet\"]" },

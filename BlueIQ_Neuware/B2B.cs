@@ -54,8 +54,8 @@ namespace BlueIQ_Neuware
 
             // Find the last row with data
             int rowCount = ws.Cells[ws.Dimension.Address].Rows - 1;
-            //Global_functions.CreateJob(rowCount, false);
-            JobInfo.Current.PalletId = "3479347";
+            Global_functions.CreateJob(rowCount, false);
+            //JobInfo.Current.PalletId = "3479347";
             if (JobInfo.Current.PalletId == "")
                 throw new Exception("Failed to create job");
 
@@ -123,7 +123,6 @@ namespace BlueIQ_Neuware
                     Global_functions.package.Save();
                 }
             }
-            Global_functions.package.Save();
         }
 
         private static bool AddDevice(Dictionary<string, object> data, bool newPallet, ExcelWorksheet ws, int row, int maxColumn)

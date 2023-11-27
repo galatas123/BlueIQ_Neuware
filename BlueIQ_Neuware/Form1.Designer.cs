@@ -277,7 +277,7 @@
             // comboBoxMode
             // 
             comboBoxMode.FormattingEnabled = true;
-            comboBoxMode.Items.AddRange(new object[] { "Neuware Buchen", "B2B Buchen", "Manual Outbound" });
+            comboBoxMode.Items.AddRange(new object[] { "Neuware Buchen", "B2B Buchen", "Manual Outbound", "Order Übersicht" });
             comboBoxMode.Location = new Point(387, 102);
             comboBoxMode.Name = "comboBoxMode";
             comboBoxMode.Size = new Size(121, 23);

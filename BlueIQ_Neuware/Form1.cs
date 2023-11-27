@@ -27,6 +27,9 @@ namespace BlueIQ_Neuware
             Manual_outbound.SetMaxProgress += UpdateUI_SetMaxProgressBar;
             Manual_outbound.ShowMessage += ShowMessage;
             Manual_outbound.RequestSaveFile += ShowSaveFileDialog;
+            orders_report.RequestSaveFile += ShowSaveFileDialog;
+            orders_report.ShowMessage += ShowMessage;
+            orders_report.StatusUpdated += UpdateUI_statusLabel;
             this.Load += Form1_Load;
             this.FormClosing += MainForm_FormClosing;
             SetLanguage(Global_functions.GetSettings());
@@ -63,6 +66,9 @@ namespace BlueIQ_Neuware
                             ShowMessage(Languages.Resources.FILL_FIELDS_MESS, MessageBoxIcon.Warning);
                             return;
                         }
+                        break;
+
+                    case "Order Übersicht":
                         break;
 
                     default: // No valid mode selected
@@ -105,6 +111,9 @@ namespace BlueIQ_Neuware
                                         break;
                                     case "Manual_outbound":
                                         Manual_outbound.Start_manual_outbound(cancellationTokenSource.Token);
+                                        break;
+                                    case "Order Übersicht":
+                                        orders_report.StartReport(cancellationTokenSource.Token);
                                         break;
                                     default:
                                         throw new InvalidOperationException("Invalid mode");
@@ -388,6 +397,10 @@ namespace BlueIQ_Neuware
                     JobInfo.Current.Mode = "Manual_outbound";
                     browseButton.Visible = true;
                     excelPathTextBox.Visible = true;
+                    break;
+
+                case "Order Übersicht":
+                    JobInfo.Current.Mode = "Order Übersicht";
                     break;
             }
         }

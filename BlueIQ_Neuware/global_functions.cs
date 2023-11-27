@@ -28,8 +28,8 @@ namespace BlueIQ_Neuware
 
             try
             {
-
-                package = new ExcelPackage(new FileInfo(excelFilePath));
+                if (excelFilePath != "")
+                    package = new ExcelPackage(new FileInfo(excelFilePath));
                 SendKeysToVisibleElement(By.XPath(BlueDictionary.LOGIN_PAGE["USERNAME"]), username);
                 SendKeysToVisibleElement(By.XPath(BlueDictionary.LOGIN_PAGE["PASSWORD"]), password);
                 ClickElement(By.XPath(BlueDictionary.LOGIN_PAGE["BUTTON"]));
@@ -73,15 +73,32 @@ namespace BlueIQ_Neuware
 
         public static void SetupWebDriver()
         {
+            FirefoxOptions options = new FirefoxOptions();
+
+            // Get the application's directory
+            string appDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+            // Ensure the Downloads directory exists
+            Directory.CreateDirectory(appDirectory);
+
+            // Set Firefox Profile with preferences for downloading
+            FirefoxProfile profile = new FirefoxProfile();
+            profile.SetPreference("browser.download.folderList", 2);
+            profile.SetPreference("browser.download.dir", appDirectory);
+            profile.SetPreference("browser.download.useDownloadDir", true);
+            profile.SetPreference("browser.helperApps.neverAsk.saveToDisk", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); // MIME type for Excel files
+
+            options.Profile = profile;
+
             var service = FirefoxDriverService.CreateDefaultService();
             service.HideCommandPromptWindow = true; // Hide the command prompt window
 
             // Redirect logs to the system's "null" device
             service.FirefoxBinaryPath = "NUL";
 
-            driver = new FirefoxDriver(service);
+            driver = new FirefoxDriver(service, options); // Pass the FirefoxOptions object here
             wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
-            waitAlert = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
+            waitAlert = new WebDriverWait(driver, TimeSpan.FromSeconds(20));
         }
 
         public static bool LoadPage(string page)
@@ -274,8 +291,8 @@ namespace BlueIQ_Neuware
                 
                 if (load)
                 {
-                    SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["PONO"]), JobInfo.Current.JobOrPoNO);
-                    SendKeysToElement(By.XPath(BlueDictionary.RECEIVING_PAGE["PONO"]), OpenQA.Selenium.Keys.Tab);
+                    SendKeysToElement(By.Id(BlueDictionary.RECEIVING_PAGE["PONO"]), JobInfo.Current.JobOrPoNO);
+                    SendKeysToElement(By.Id(BlueDictionary.RECEIVING_PAGE["PONO"]), OpenQA.Selenium.Keys.Tab);
                 }
                 else
                 {

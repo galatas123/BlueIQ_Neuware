@@ -45,6 +45,7 @@ namespace BlueIQ_Neuware
             // Find the last row with data
             int rowCount = ws.Cells[ws.Dimension.Address].Rows - 1;
             Global_functions.CreateJob(rowCount, true);
+            //JobInfo.Current.PalletId = "3558248";
             if (JobInfo.Current.PalletId == "")
                 throw new Exception("Failed to create job");
             SetMaxProgress?.Invoke(rowCount); // Deducting 2 as you're starting from the second row and excluding the header row.
