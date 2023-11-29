@@ -1,39 +1,43 @@
-﻿using OfficeOpenXml;
+using ExcelDataReader;
+using OfficeOpenXml;
 using OpenQA.Selenium;
 using SeleniumExtras.WaitHelpers;
-using Microsoft.Office.Interop.Excel;
-using System.Runtime.InteropServices;
-using Range = Microsoft.Office.Interop.Excel.Range;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Globalization;
 
-namespace BlueIQ_Neuware
+namespace BlueIQ
 {
-    internal class orders_report
+    internal class Orders_report
     {
         public delegate void StatusUpdateHandler(string statusMessage);
         public delegate void MessageHandler(string message, MessageBoxIcon icon = MessageBoxIcon.Information);
         public delegate void SaveFileHandler(out string? savedFilePath);
+        public delegate void SetMaxProgressHandler(int maxValue);
+        public delegate void ProgressUpdateHandler(int value, string percentageText = "");
 
         // Define the event using the delegate
         public static event StatusUpdateHandler? StatusUpdated;
         public static event MessageHandler? ShowMessage;
         public static event SaveFileHandler? RequestSaveFile;
+        public static event SetMaxProgressHandler? SetMaxProgress;
+        public static event ProgressUpdateHandler? ProgressUpdated;
 
 
-        private static ExcelPackage? package;
         private static ExcelPackage? excelOutPackage;
 
         static readonly string InboundChannel = "eCollect/BoxIT";
         static readonly string OutboundChannel = "RETURN TO SOURCE";
         static readonly string InputExcel = "Orders.xls";
+        static bool ignore = false;
         static string OrderType = "";
         static string ScanID = "";
+        static string OutScanID = "";
+        static string ShippedOut = "";
         static string Status = "";
         static string OrderID = "";
         static string Date = "";
         static string Comment = "";
         static string Serial = "";
-        
+
         public static void StartReport(CancellationToken cancellationToken)
         {
             // Ensure the driver and wait objects from global_functions are initialized
@@ -47,7 +51,7 @@ namespace BlueIQ_Neuware
             {
                 Itirate_list(cancellationToken);
             }
-                
+
         }
 
         public static bool DownloadExcel()
@@ -69,86 +73,93 @@ namespace BlueIQ_Neuware
 
         public static void Itirate_list(CancellationToken cancellationToken)
         {
-            Microsoft.Office.Interop.Excel.Application excelApp = new Microsoft.Office.Interop.Excel.Application();
-            Workbook workbook = null;
-            Worksheet worksheet = null;
             try
-            {   
-                workbook = excelApp.Workbooks.Open(InputExcel);
-                worksheet = (Worksheet)workbook.Worksheets[1]; // Assuming the first worksheet is the one you want
-                Range range = worksheet.UsedRange;
-                int rowCount = range.Rows.Count;
-                var wsOut = excelOutPackage.Workbook.Worksheets[0]; // Assuming the package is initialized by createExcelOut
-                //var ws = package.Workbook.Worksheets[0];
-                //int rowCount = ws.Cells[ws.Dimension.Address].Rows - 1;
-                for (int row = 2; row <= 5; row++)
+            {  
+                var wsOut = excelOutPackage.Workbook.Worksheets[0]; 
+                ProgressUpdated?.Invoke(0); // Reset the progress bar at the start.
+                using (var stream = File.Open(InputExcel, FileMode.Open, FileAccess.Read))
                 {
-                    try
+                    using var reader = ExcelReaderFactory.CreateReader(stream);
+                    var result = reader.AsDataSet();
+                    var dataTable = result.Tables[0];
+                    int progressBarValue = 0;
+                    int progressBarMaximum = 0;
+                    SetMaxProgress?.Invoke(dataTable.Rows.Count);
+                    progressBarMaximum = dataTable.Rows.Count;
+                    for (int row = 1; row < dataTable.Rows.Count; row++) // Starting from 1 to skip header
+                    //for (int row = 1; row < 2; row++)
                     {
-                        if (cancellationToken.IsCancellationRequested)
+                        try
                         {
-                            return;
-                        }
-                        /*
-                        var order = ws.Cells[row, 1].Value.ToString();
-                        var status = ws.Cells[row, 8].Value.ToString();
-                        if (status == "PICKING")
-                            continue;
-                        if (ws.Cells[row, 3].Value.ToString() == InboundChannel)
-                            OrderType = "INBOUND";
-                        else
-                            OrderType = "OUTBOUND";
-                        if (!GetOrderInfo(OrderID))
-                        {
-                            continue;
-                        }
-                        */
-                        Range orderCell = (Range)range.Cells[row, 1]; // Column 1 for 'order'
-                        Range statusCell = (Range)range.Cells[row, 8]; // Column 8 for 'status'
-                        Range channelCell = (Range)range.Cells[row, 3]; // Column 3 for 'channel'
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                return;
+                            }
 
-                        OrderID = orderCell.Value?.ToString() ?? string.Empty;
-                        Status = statusCell.Value?.ToString() ?? string.Empty;
-                        string channel = channelCell.Value?.ToString() ?? string.Empty;
-                        if (Status == "PICKING")
-                            continue;
-                        OrderType = channel == InboundChannel ? "INBOUND" : "OUTBOUND";
-                        if (!GetOrderInfo(OrderID))
-                        {
-                            continue;
+                            var dataRow = dataTable.Rows[row];
+                            OrderID = dataRow[0].ToString();
+                            Status = dataRow[7].ToString();
+                            var channel = dataRow[2].ToString();
+
+                            OrderType = channel.Equals(InboundChannel, StringComparison.OrdinalIgnoreCase) ? "INBOUND" : "OUTBOUND";
+                            /*
+                            OrderID = "1895643";
+                            OrderType = "OUTBOUND";
+                            Status = "SHIP STAGING";
+                            */
+                            if (Status.Equals("PICKING", StringComparison.OrdinalIgnoreCase))
+                            {
+                                ignore = true;
+                                continue;
+                            }
+
+                            if (!GetOrderInfo(OrderID))
+                            {
+                                continue;
+                            }
                         }
-                        var updateValues = new List<string> { OrderID, OrderType, Status, ScanID, Date, Comment };
-                        UpdateExcel(wsOut, updateValues);
-                    }
-                    catch (Exception ex)
-                    {
-                        var errorValues = new List<string> { OrderID, OrderType, Status, ScanID, Date, Comment, "fail check logs" };
-                        UpdateExcel(wsOut, errorValues);
-                        Global_functions.LogError(Global_functions.GetCallerFunctionName(), ex.Message);
-                    }
-                    finally
-                    {
-                        OrderID = OrderType = Status = ScanID = Date = Comment = "";
-                        excelOutPackage.Save();
+                        catch (Exception ex)
+                        {
+                            Comment = "failed check logs";
+                            Global_functions.LogError(Global_functions.GetCallerFunctionName(), ex.Message);
+                        }
+                        finally
+                        {
+                            if (progressBarValue < dataTable.Rows.Count + 1)
+                            {
+                                progressBarValue++;
+                                int percentage = (int)(((double)progressBarValue / (double)progressBarMaximum) * 100);
+                                ProgressUpdated?.Invoke(progressBarValue, $"{percentage}%");
+                            }
+                            if (!ignore)
+                            {
+                                var updateValues = new List<string> { OrderID, OrderType, Status, Date, ScanID, OutScanID, ShippedOut, Comment };
+                                UpdateExcel(wsOut, updateValues);
+                                excelOutPackage.Save();
+                            }
+                            ignore = false;
+                            OrderID = OrderType = Status = ScanID = Date = Comment = OutScanID = ShippedOut = ""; 
+                        }
+
                     }
                 }
                 excelOutPackage.Save();
-                // Store the original path of the excelOutPackage file
+
+                // Saving to user-selected path or deleting the original file
                 string originalPath = excelOutPackage.File.FullName;
                 string? userSelectedPath = null;
                 RequestSaveFile?.Invoke(out userSelectedPath);
 
-                if (!string.IsNullOrEmpty(userSelectedPath))
-                {
-                    excelOutPackage.SaveAs(new FileInfo(userSelectedPath));
-                }
                 try
                 {
-                    File.Delete(originalPath);
+                    if (!string.IsNullOrEmpty(userSelectedPath))
+                    {
+                        excelOutPackage.SaveAs(new FileInfo(userSelectedPath));
+                        File.Delete(originalPath);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    // Handle any issues encountered while trying to delete the file
                     ShowMessage?.Invoke("Error deleting the original Excel file: " + ex.Message);
                 }
             }
@@ -159,14 +170,8 @@ namespace BlueIQ_Neuware
             }
             finally
             {
+                File.Delete(InputExcel);
                 excelOutPackage?.Dispose();
-                package?.Dispose();
-                workbook?.Close(false);
-                excelApp.Quit();
-
-                Marshal.ReleaseComObject(worksheet);
-                Marshal.ReleaseComObject(workbook);
-                Marshal.ReleaseComObject(excelApp);
             }
         }
 
@@ -174,42 +179,103 @@ namespace BlueIQ_Neuware
         {
             if (!Global_functions.LoadPage(BlueDictionary.LINKS["ORDER_DETAIL"] + Order))
                 return false;
+
             Date = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.Id(BlueDictionary.ORDER_DETAILS_PAGE["ORDER_DATE"]))).Text;
+            if (DateTime.TryParseExact(Date, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+            {
+                // Get the current date (without the time part)
+                DateTime currentDate = DateTime.Today;
+
+                // Calculate the difference in days
+                TimeSpan dateDifference = currentDate - parsedDate;
+                int daysOld = dateDifference.Days;
+                Date = daysOld.ToString();
+                if (daysOld < 2)
+                {
+                    ignore = true;
+                }
+            }
+
             if (OrderType == "INBOUND")
             {
-                Global_functions.ClickElement(By.XPath(BlueDictionary.ORDER_DETAILS_PAGE["RECLAIM"]));
-                Serial = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.ORDER_DETAILS_PAGE["SERIAL"]))).Text;
-                if (!GetScanID(Serial))
+                if (!GetScanID())
+                {
                     return false;
+                }         
+            }
+
+            if (OrderType == "OUTBOUND")
+            {
+                if (!GetOutboundInfo())
+                {
+                    return false;
+                }
             }
             return true;
         }
 
-        public static bool GetScanID(string serial)
+        public static bool GetScanID()
         {
             try
             {
-                if (!Global_functions.LoadPage(BlueDictionary.LINKS["AUDIT"]))
-                    return false;
-                Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#_RADIO"]));
-                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SEARCH_ASSETS"]), serial);
-                Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SEARCH_ASSETS"]), OpenQA.Selenium.Keys.Tab.ToString());
-                try
+                Global_functions.ClickElement(By.XPath(BlueDictionary.ORDER_DETAILS_PAGE["RECLAIM"]));
+                Serial = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.ORDER_DETAILS_PAGE["SERIAL_NO"]))).Text;
+                if (!string.IsNullOrEmpty(Serial))
                 {
-                    ScanID = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.REPAIR_DETAIL_PAGE["SCAN_ID"]))).Text;
+                    if (!Global_functions.LoadPage(BlueDictionary.LINKS["AUDIT"]))
+                        return false;
+                    Global_functions.ClickElement(By.XPath(BlueDictionary.AUDIT_PAGE["SERIAL#_RADIO"]));
+                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SEARCH_ASSETS"]), Serial);
+                    Global_functions.SendKeysToElement(By.XPath(BlueDictionary.AUDIT_PAGE["SEARCH_ASSETS"]), OpenQA.Selenium.Keys.Tab.ToString());
+                    try
+                    {
+                        ScanID = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.REPAIR_DETAIL_PAGE["SCAN_ID"]))).Text;
+                    }
+                    catch
+                    {
+                        Comment = "device not received";
+                        return false;
+                    }
+                    return true;
                 }
-                catch
+                else
                 {
-                    Comment = "scan id not found";
+                    Comment = "no Inbound Serial";
                     return false;
                 }
-                return true;
             }
             catch (Exception ex)
             {
                 Global_functions.LogError(Global_functions.GetCallerFunctionName(), ex.ToString());
                 return false;
-            }     
+            }
+        }
+
+        public static bool GetOutboundInfo()
+        {
+            try
+            {
+                var info = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.Id(BlueDictionary.ORDER_DETAILS_PAGE["SWAP_ORDER_REF"]))).GetAttribute("value");
+                ScanID = info;
+                if (info.Length > 0)
+                {
+                    string[] parts = info.Split('_');
+                    if (parts.Length > 1)
+                    {
+                        ScanID = parts[1];
+                    }
+                }
+                Global_functions.ClickElement(By.XPath(BlueDictionary.ORDER_DETAILS_PAGE["TRACKING"]));
+                ShippedOut = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.XPath(BlueDictionary.ORDER_DETAILS_PAGE["SHIPPED_OUT"]))).Text;
+                OutScanID = Global_functions.wait.Until(ExpectedConditions.ElementIsVisible(By.Id(BlueDictionary.ORDER_DETAILS_PAGE["OUTBOUND_SCAN_ID"]))).Text;
+                return true;
+            }
+            
+            catch (Exception ex)
+            {
+                Global_functions.LogError(Global_functions.GetCallerFunctionName(), ex.ToString());
+                return false;
+            }
         }
 
         public static void CreateExcelOut(string excelToCreate)
@@ -226,7 +292,7 @@ namespace BlueIQ_Neuware
                     var wsOut = excelOutPackage.Workbook.Worksheets.Add("Sheet1"); // Add a new worksheet
 
                     // Add headers if creating a new workbook
-                    string[] headers = { "Order ID", "Type", "Status", "Inbound ScanID", "Creation Date", "Comments" };
+                    string[] headers = { "Order ID", "Type", "Status", "Age Days", "Inbound ScanID", "Outbound ScanID", "Shipped Outbound", "Comments" };
                     for (int i = 0; i < headers.Length; i++)
                     {
                         wsOut.Cells[1, i + 1].Value = headers[i];
@@ -235,12 +301,11 @@ namespace BlueIQ_Neuware
                         wsOut.Cells[1, i + 1].Style.Font.Name = "Arial";
                         wsOut.Column(i + 1).Width = 20;
                     }
-                    var tableRange = wsOut.Cells["A1:F2"];
+                    var tableRange = wsOut.Cells["A1:H400"];
 
                     // Create a table based on this range.
                     var table = wsOut.Tables.Add(tableRange, "Table");
-                    table.TableStyle = OfficeOpenXml.Table.TableStyles.Light9;// Start with no style
-                    table.ShowHeader = true;
+                    table.TableStyle = OfficeOpenXml.Table.TableStyles.Light9;
                     table.ShowFilter = true;
                     wsOut.Cells[wsOut.Dimension.Address].AutoFitColumns();
 
@@ -273,3 +338,4 @@ namespace BlueIQ_Neuware
         }
     }
 }
+
